@@ -207,7 +207,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, isLoadin
   };
 
   return (
-    <div className="flex flex-col h-full bg-ocean-900 relative pt-safe-top">
+    <div className="flex flex-col h-full bg-ocean-900 relative">
       {/* Header - Transparent Glass */}
       <div className="absolute top-0 left-0 w-full z-20 bg-gradient-to-b from-ocean-900/90 to-transparent backdrop-blur-[2px] pt-[calc(env(safe-area-inset-top)+10px)] pb-2 px-4 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-3 overflow-hidden pointer-events-auto">
@@ -263,7 +263,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, isLoadin
 
       {/* Messages Area - Gradient Background */}
       <div 
-        className="flex-1 overflow-y-auto p-4 pt-20 space-y-6 no-scrollbar pb-36 bg-gradient-to-b from-ocean-900 to-[#0a0f1e]"
+        className="flex-1 overflow-y-auto p-4 pt-20 space-y-6 no-scrollbar bg-gradient-to-b from-ocean-900 to-[#0a0f1e]"
         ref={scrollContainerRef}
         onScroll={handleScroll}
       >
@@ -458,18 +458,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, isLoadin
       {showScrollBottom && (
           <button 
             onClick={scrollToBottom}
-            className="absolute bottom-28 right-4 z-40 bg-ocean-800/80 backdrop-blur border border-ocean-700 text-gold-500 w-10 h-10 rounded-full flex items-center justify-center shadow-lg animate-fade-in hover:bg-ocean-700 active:scale-90"
+            className="absolute bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-40 bg-ocean-800/80 backdrop-blur border border-ocean-700 text-gold-500 w-10 h-10 rounded-full flex items-center justify-center shadow-lg animate-fade-in hover:bg-ocean-700 active:scale-90"
           >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
       )}
 
-      {/* Input Area - Floating Glass Capsule */}
-      <div className="absolute bottom-6 left-4 right-4 z-40">
+      {/* Input Area - Flex container to stick to bottom properly */}
+      <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] z-40 bg-gradient-to-t from-ocean-900 via-ocean-900 to-transparent">
         
         {/* VOICE OVERLAY ANIMATION */}
         {isListening && (
-            <div className="absolute inset-0 -top-24 bg-ocean-900/95 backdrop-blur-md z-30 flex items-center justify-center gap-4 rounded-2xl border border-gold-500/30 shadow-2xl animate-fade-in h-40 flex-col">
+            <div className="absolute left-4 right-4 bottom-24 bg-ocean-900/95 backdrop-blur-md z-30 flex items-center justify-center gap-4 rounded-2xl border border-gold-500/30 shadow-2xl animate-fade-in h-40 flex-col">
                 <div className="w-12 h-12 rounded-full bg-gold-500/20 flex items-center justify-center animate-pulse">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
                 </div>
@@ -480,12 +480,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, isLoadin
 
         {/* Suggestion Chips */}
         {!isLoading && !isListening && !showTools && (
-            <div className="flex gap-2 overflow-x-auto no-scrollbar mb-4 pb-1 justify-center mask-image-fade">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar mb-2 justify-center mask-image-fade">
                 {currentChips.map(chip => (
                     <button 
                         key={chip.text}
                         onClick={() => handleChipClick(chip.text)}
-                        className="flex-shrink-0 bg-ocean-800/60 backdrop-blur-md border border-white/5 hover:border-gold-500/30 text-gray-200 text-xs px-4 py-2 rounded-full whitespace-nowrap transition-all flex items-center gap-1.5 shadow-sm active:scale-95 active:bg-gold-500/10"
+                        className="flex-shrink-0 bg-ocean-800/90 backdrop-blur-md border border-white/5 hover:border-gold-500/30 text-gray-200 text-xs px-4 py-2 rounded-full whitespace-nowrap transition-all flex items-center gap-1.5 shadow-sm active:scale-95 active:bg-gold-500/10"
                     >
                         <span>{chip.emoji}</span>
                         <span>{chip.text}</span>
@@ -525,7 +525,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, isLoadin
         )}
 
         {/* Floating Capsule Input */}
-        <form onSubmit={handleSubmit} className="relative flex items-center gap-3 bg-ocean-900/90 backdrop-blur-xl border border-white/10 p-2 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.5)] transition-all focus-within:border-gold-500/30 focus-within:shadow-[0_10px_40px_rgba(245,158,11,0.1)]">
+        <form onSubmit={handleSubmit} className="relative flex items-center gap-3 bg-ocean-800/90 backdrop-blur-xl border border-white/10 p-2 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.5)] transition-all focus-within:border-gold-500/30 focus-within:shadow-[0_10px_40px_rgba(245,158,11,0.1)]">
            <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleImageSelect} />
            
            <button 

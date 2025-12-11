@@ -12,7 +12,7 @@ interface WelcomeScreenProps {
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onStartChat, onEnterStore, onEnterDiscovery, onEnterAdmin, onOpenProfile, isLoggedIn }) => {
   return (
-    <div className="flex flex-col h-screen w-full bg-ocean-900 relative overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-ocean-900 relative overflow-hidden">
       {/* Deep Sea Atmospheric Background */}
       <div className="absolute top-0 left-0 w-full h-full bg-ocean-900 z-0">
           {/* Static Texture */}

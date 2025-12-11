@@ -1,49 +1,18 @@
 
-import { Product, User, Comment, Address, Order, BanquetMenu, Message, MessageRole, CartItem } from "../types";
+import { Product, User, Address, Order, BanquetMenu, Message, MessageRole, CartItem } from "../types";
 
-// --- DEEPSEEK CONFIGURATION ---
-const API_KEY = "sk-bf8e496d37c34159ab01933d989a2238"; // User provided key
-const API_URL = "https://api.deepseek.com/chat/completions"; 
+// DEEPSEEK CONFIGURATION
+// 使用 Vercel 环境变量中的 Key
+const API_KEY = process.env.API_KEY; 
+const API_URL = "https://api.deepseek.com/chat/completions";
+const MODEL_NAME = "deepseek-chat";
 
 export class GeminiService {
   private currentCatalog: Product[] = [];
-  private messageHistory: any[] = [];
+  // DeepSeek / OpenAI uses { role: 'user' | 'assistant' | 'system', content: string }
+  private chatHistory: { role: string; content: string }[] = [];
 
-  constructor() {
-    // API Key is hardcoded for simplicity as requested by user
-  }
-
-  // --- Helper: Standard Fetch Wrapper for DeepSeek ---
-  private async callDeepSeek(messages: any[], jsonMode: boolean = false): Promise<string> {
-      try {
-          const response = await fetch(API_URL, {
-              method: "POST",
-              headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${API_KEY}`
-              },
-              body: JSON.stringify({
-                  model: "deepseek-chat",
-                  messages: messages,
-                  temperature: 1.1,
-                  // DeepSeek supports json_object response format
-                  response_format: jsonMode ? { type: "json_object" } : { type: "text" }
-              })
-          });
-
-          if (!response.ok) {
-              const err = await response.text();
-              console.error("DeepSeek API Error:", err);
-              throw new Error(`API Error: ${response.status}`);
-          }
-
-          const data = await response.json();
-          return data.choices[0].message.content;
-      } catch (error) {
-          console.error("Network Error:", error);
-          throw error;
-      }
-  }
+  constructor() {}
 
   // --- Context Generators ---
   private getSeasonalContext(): string {
@@ -76,24 +45,24 @@ export class GeminiService {
 
     return `
     你叫“魏来”，是【魏来海鲜】的高级私人海鲜管家。
-    你的语气：高端、专业、热情、高情商。使用中文交流。
+    你的语气：高端、专业、热情、高情商。请使用中文交流。
     
-    【核心任务】：
-    1. 根据用户需求推荐海鲜。
-    2. 解答关于海鲜口感、做法、营养的问题。
-    3. 引导用户下单。
+    【你的核心任务】：
+    1. 根据用户需求推荐海鲜（精准匹配口味和预算）。
+    2. 解答关于海鲜口感、做法、营养的问题（展现专业度）。
+    3. 引导用户下单（利用稀缺性或优惠）。
 
-    【推荐商品规则】：
+    【关键规则 - 推荐商品】：
     如果你在对话中明确推荐了商品，请务必在回答的最后，附加一个 JSON 数据块，格式严格如下：
     \`\`\`json
     { "recommendedProductIds": ["id1", "id2"] }
     \`\`\`
-    如果只是普通聊天，不要输出这个 JSON。
+    如果只是普通聊天，绝对不要输出这个 JSON。
 
     【当前店铺商品列表】：
     ${catalogString}
 
-    【上下文】：
+    【当前上下文】：
     ${this.getSeasonalContext()}
     ${userContext}
     ${cartContext}
@@ -104,21 +73,26 @@ export class GeminiService {
 
   startChat(catalog: Product[], user: User | null, initialProductContext?: Product, orders: Order[] = [], cart: CartItem[] = []) {
     this.currentCatalog = catalog;
-    this.messageHistory = [
-        { role: "system", content: this.getSystemInstruction(catalog, user, orders, cart) }
+    const sysInstruction = this.getSystemInstruction(catalog, user, orders, cart);
+    
+    // DeepSeek uses a 'system' message for instructions
+    this.chatHistory = [
+        { role: 'system', content: sysInstruction }
     ];
 
     if (initialProductContext) {
-        this.messageHistory.push({ role: "user", content: `我正在看【${initialProductContext.name}】，想咨询一下。` });
-        this.messageHistory.push({ role: "assistant", content: `非常有眼光！${initialProductContext.name} 是我们店里的明星产品。您是打算自己尝鲜，还是宴请朋友呢？` });
+        this.chatHistory.push({ role: 'user', content: `我正在看【${initialProductContext.name}】，想咨询一下。` });
+        this.chatHistory.push({ role: 'assistant', content: `非常有眼光！${initialProductContext.name} 是我们店里的明星产品。您是打算自己尝鲜，还是宴请朋友呢？` });
     }
   }
 
   resumeChat(catalog: Product[], user: User | null, messageHistory: Message[], orders: Order[] = [], cart: CartItem[] = []) {
       this.currentCatalog = catalog;
-      // Rebuild history from UI messages
-      this.messageHistory = [
-          { role: "system", content: this.getSystemInstruction(catalog, user, orders, cart) },
+      const sysInstruction = this.getSystemInstruction(catalog, user, orders, cart);
+      
+      // Rebuild history logic
+      this.chatHistory = [
+          { role: 'system', content: sysInstruction },
           ...messageHistory
             .filter(m => m.role !== MessageRole.SYSTEM && !m.isStreaming)
             .map(m => ({
@@ -128,99 +102,101 @@ export class GeminiService {
       ];
   }
 
-  // --- Streaming Chat Implementation (using Fetch & SSE for DeepSeek) ---
+  // --- Streaming Chat Implementation (DeepSeek via Fetch) ---
   async sendMessageStream(
       message: string, 
       image: string | undefined, 
       onTextChunk: (text: string) => void
   ): Promise<{ text: string, recommendations?: Product[] }> {
     
-    // DeepSeek currently optimizes for text. Image handling would need a vision model.
-    // For this implementation, we append a note if an image is present.
+    // DeepSeek V3 API is primarily text-based. 
+    // If an image is present, we append a marker so the system knows (though it can't "see" it yet via this endpoint).
     let content = message;
     if (image) {
-        content += " [用户上传了一张图片，请假装你能看到并根据上下文回应]";
+        content += " [用户发送了一张图片，请根据上下文推测并礼貌回应，或者询问图片细节]"; 
     }
 
-    const userMsg = { role: "user", content };
-    this.messageHistory.push(userMsg);
+    this.chatHistory.push({ role: 'user', content: content });
 
     try {
         const response = await fetch(API_URL, {
-            method: "POST",
+            method: 'POST',
             headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${API_KEY}`
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`
             },
             body: JSON.stringify({
-                model: "deepseek-chat",
-                messages: this.messageHistory,
+                model: MODEL_NAME,
+                messages: this.chatHistory,
                 stream: true,
-                temperature: 1.1
+                temperature: 1.3, // DeepSeek performs well creatively with slightly higher temp
+                max_tokens: 1024
             })
         });
 
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let fullText = "";
-        let buffer = "";
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`DeepSeek API Error ${response.status}: ${errText}`);
+        }
+        
+        if (!response.body) throw new Error('No response body');
 
-        if (!reader) throw new Error("No reader");
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = "";
 
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
             
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            buffer = lines.pop() || ""; // Keep incomplete line in buffer
-
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
             for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed.startsWith("data: ")) continue;
-                const jsonStr = trimmed.replace("data: ", "");
-                if (jsonStr === "[DONE]") break;
-
-                try {
-                    const json = JSON.parse(jsonStr);
-                    const content = json.choices[0]?.delta?.content || "";
-                    if (content) {
-                        fullText += content;
-                        onTextChunk(fullText); // Update UI
+                if (line.startsWith('data: ')) {
+                    const dataStr = line.slice(6).trim();
+                    if (dataStr === '[DONE]') break;
+                    
+                    try {
+                        const data = JSON.parse(dataStr);
+                        const contentChunk = data.choices[0]?.delta?.content || "";
+                        if (contentChunk) {
+                            fullText += contentChunk;
+                            onTextChunk(fullText);
+                        }
+                    } catch (e) {
+                        // ignore incomplete chunks
                     }
-                } catch (e) {
-                    // Ignore parse errors for chunks
                 }
             }
         }
 
-        // Post-processing for recommendations (JSON Extraction)
+        // Post-processing for recommendations (Extracting the JSON block)
         let recommendations: Product[] = [];
+        // Regex to find ```json { ... } ``` or just { ... } at the end
         const jsonMatch = fullText.match(/```json\s*(\{[\s\S]*?\})\s*```/);
-        
         let finalText = fullText;
+
         if (jsonMatch) {
             try {
                 const data = JSON.parse(jsonMatch[1]);
                 if (data.recommendedProductIds && Array.isArray(data.recommendedProductIds)) {
                     recommendations = this.currentCatalog.filter(p => data.recommendedProductIds.includes(p.id));
                 }
-                // Remove the JSON block from display so the user doesn't see raw code
+                // Hide the JSON from the UI
                 finalText = fullText.replace(jsonMatch[0], "").trim();
-                onTextChunk(finalText); // Update UI one last time without JSON
+                onTextChunk(finalText); 
             } catch (e) {
                 console.error("Failed to parse recommendation JSON", e);
             }
         }
 
-        // Save assistant response to history
-        this.messageHistory.push({ role: "assistant", content: fullText });
-
+        this.chatHistory.push({ role: 'assistant', content: fullText }); // Store raw response including JSON for context
         return { text: finalText, recommendations };
 
     } catch (error) {
-        console.error("DeepSeek Stream Error:", error);
-        return { text: "网络信号微弱，管家正在重新连接... (请检查网络)", recommendations: [] };
+        console.error("DeepSeek API Connection Failed:", error);
+        return { text: "网络繁忙，管家正在接待其他贵宾，请稍后重试。(请检查 API Key 配置)", recommendations: [] };
     }
   }
 
@@ -228,29 +204,55 @@ export class GeminiService {
       return this.sendMessageStream(message, image, () => {});
   }
 
-  // --- Functional Features using JSON Mode ---
+  // --- Functional Features (Using DeepSeek for JSON tasks) ---
+
+  async runSimpleTask(prompt: string): Promise<string> {
+      try {
+          const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`
+            },
+            body: JSON.stringify({
+                model: MODEL_NAME,
+                messages: [{ role: 'user', content: prompt }],
+                stream: false
+            })
+        });
+        const data = await response.json();
+        return data.choices[0].message.content;
+      } catch (e) {
+          console.error("Task Error:", e);
+          return "";
+      }
+  }
 
   async planBanquet(products: Product[], people: number, budget: number, preference: string): Promise<BanquetMenu> {
       const prompt = `
       任务：制定一份海鲜宴席菜单。
       现有商品：${products.map(p => `${p.id}:${p.name}:¥${p.price}`).join('; ')}
       要求：${people}人用餐，预算¥${budget}，偏好：${preference}。
-      请直接返回JSON格式：{ "title": "菜单标题", "description": "简短描述", "items": [{ "productId": "id", "quantity": number }] }
+      请直接返回JSON格式，不要包含Markdown标记，格式如下：
+      { "title": "菜单标题", "description": "简短描述", "items": [{ "productId": "id", "quantity": number }] }
       `;
       
+      const text = await this.runSimpleTask(prompt);
       try {
-        const response = await this.callDeepSeek([{ role: "user", content: prompt }], true);
-        const result = JSON.parse(response);
+        // Cleaning potential markdown wrappers
+        const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const result = JSON.parse(jsonStr);
         
         let total = 0;
-        result.items.forEach((i: any) => {
-            const p = products.find(prod => prod.id === i.productId);
-            if (p) total += p.price * i.quantity;
-        });
+        if(result.items) {
+            result.items.forEach((i: any) => {
+                const p = products.find(prod => prod.id === i.productId);
+                if (p) total += p.price * i.quantity;
+            });
+        }
         return { ...result, totalPrice: total };
       } catch (e) {
-          console.error(e);
-          return { title: "定制失败", description: "请重试", items: [], totalPrice: 0 };
+          return { title: "定制失败", description: "AI 暂时无法生成菜单，请重试", items: [], totalPrice: 0 };
       }
   }
 
@@ -258,12 +260,13 @@ export class GeminiService {
       const prompt = `
       商品列表：${products.map(p => `${p.id}:${p.name} 标签:${p.tags.join(',')}`).join('\n')}
       用户搜索："${query}"
-      任务：返回语义匹配的商品ID列表。
-      返回JSON：{ "matchedIds": ["id1", "id2"] }
+      请分析语义，返回最匹配的商品ID列表。
+      返回JSON格式：{ "matchedIds": ["id1", "id2"] }
       `;
+      const text = await this.runSimpleTask(prompt);
       try {
-          const response = await this.callDeepSeek([{ role: "user", content: prompt }], true);
-          return JSON.parse(response).matchedIds || [];
+          const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+          return JSON.parse(jsonStr).matchedIds || [];
       } catch (e) { return []; }
   }
 
@@ -278,37 +281,25 @@ export class GeminiService {
         "tags": ["标签"], "nutrition": "营养", "cookingMethod": "做法" 
       }
       `;
-      try {
-          const response = await this.callDeepSeek([{ role: "user", content: prompt }], true);
-          return JSON.parse(response);
-      } catch (e) { return {}; }
+      const res = await this.runSimpleTask(prompt);
+      try { return JSON.parse(res.replace(/```json/g, '').replace(/```/g, '').trim()); } catch (e) { return {}; }
   }
 
   async parseAddressInfo(text: string): Promise<Partial<Address>> {
       const prompt = `解析中国地址："${text}"。返回JSON：{ "name": "", "phone": "", "province": "", "city": "", "detail": "" }`;
-      try {
-          const response = await this.callDeepSeek([{ role: "user", content: prompt }], true);
-          return JSON.parse(response);
-      } catch (e) { return {}; }
+      const res = await this.runSimpleTask(prompt);
+      try { return JSON.parse(res.replace(/```json/g, '').replace(/```/g, '').trim()); } catch (e) { return {}; }
   }
 
   async generateBusinessReport(orders: Order[], products: Product[]): Promise<string> {
       const stats = `订单数: ${orders.length}, 总营收: ¥${orders.reduce((a,b)=>a+b.total,0)}`;
       const prompt = `为魏来海鲜生成一份简短的日报。数据：${stats}。语气：专业、鼓舞人心。`;
-      return await this.callDeepSeek([{ role: "user", content: prompt }]);
+      return await this.runSimpleTask(prompt);
   }
 
   async generateUserReview(productName: string, tags: string[], mood: string): Promise<string> {
-      const prompt = `写一条关于"${productName}"的大众点评好评。关键词：${tags.join(',')}。心情：${mood}。中文。`;
-      return await this.callDeepSeek([{ role: "user", content: prompt }]);
-  }
-
-  async generateDietPlan(goal: string, products: Product[]): Promise<any> {
-      return { title: "定制食谱", advice: "建议咨询医生", days: [] };
-  }
-  
-  async generateSocialComments(productName: string): Promise<Comment[]> {
-      return [];
+      const prompt = `写一条关于"${productName}"的大众点评风格好评。关键词：${tags.join(',')}。心情：${mood}。中文，50字左右。`;
+      return await this.runSimpleTask(prompt);
   }
 }
 

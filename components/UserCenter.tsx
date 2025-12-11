@@ -272,7 +272,7 @@ const UserCenter: React.FC<UserCenterProps> = ({
 
   if (!user) {
     return (
-      <div className="h-screen w-full bg-ocean-900 relative overflow-hidden flex flex-col items-center justify-center p-6 animate-fade-in-up">
+      <div className="h-full w-full bg-ocean-900 relative overflow-hidden flex flex-col items-center justify-center p-6 animate-fade-in-up">
         <button onClick={onBack} className="absolute top-safe-top left-4 p-2 text-gray-400 hover:text-white z-20"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
         <div className="w-20 h-20 rounded-full bg-ocean-800 border border-gold-500/30 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.2)] mb-8">
             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.47-3.46 6-7 6s-7.06-2.53-8.5-6Z"/><path d="M18 12v.5"/><path d="M16 17.93a9.77 9.77 0 0 1 0-11.86"/></svg>
@@ -284,7 +284,7 @@ const UserCenter: React.FC<UserCenterProps> = ({
   }
 
   const renderHeader = (title: string, onBackOverride?: () => void, rightAction?: React.ReactNode) => (
-    <div className="relative z-10 pt-safe-top px-4 pb-4 flex items-center justify-between bg-ocean-900 border-b border-ocean-800">
+    <div className="relative z-10 pt-safe-top px-4 pb-4 flex items-center justify-between bg-ocean-900 border-b border-ocean-800 flex-shrink-0">
          <button onClick={onBackOverride || onBack} className="p-2 -ml-2 text-white/80 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
          <h1 className="text-white font-serif tracking-wide">{title}</h1>
          <div className="w-12 flex justify-end">{rightAction}</div>
@@ -305,9 +305,9 @@ const UserCenter: React.FC<UserCenterProps> = ({
   if (currentView === 'favorites') {
       const favProducts = products.filter(p => user.favoriteProductIds?.includes(p.id));
       return (
-          <div className="h-screen w-full bg-ocean-900 flex flex-col">
+          <div className="h-full w-full bg-ocean-900 flex flex-col">
               {renderHeader('我的收藏', () => setCurrentView('main'))}
-              <div className="flex-1 overflow-y-auto p-4 bg-ocean-900">
+              <div className="flex-1 overflow-y-auto p-4 bg-ocean-900 pb-[calc(20px+env(safe-area-inset-bottom))]">
                   {favProducts.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-full text-gray-500">
                           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mb-4"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
@@ -338,10 +338,10 @@ const UserCenter: React.FC<UserCenterProps> = ({
       });
 
       return (
-          <div className="h-screen w-full bg-ocean-900 flex flex-col">
+          <div className="h-full w-full bg-ocean-900 flex flex-col">
               {renderHeader('我的订单', () => setCurrentView('main'))}
               
-              <div className="bg-ocean-900 px-4 py-2 border-b border-ocean-800 flex gap-6 overflow-x-auto no-scrollbar">
+              <div className="bg-ocean-900 px-4 py-2 border-b border-ocean-800 flex gap-6 overflow-x-auto no-scrollbar flex-shrink-0">
                   {(['all', 'pending', 'shipped', 'completed'] as OrderTab[]).map(tab => (
                       <button 
                           key={tab}
@@ -354,7 +354,7 @@ const UserCenter: React.FC<UserCenterProps> = ({
                   ))}
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-ocean-900 pb-safe-bottom">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-ocean-900 pb-[calc(20px+env(safe-area-inset-bottom))]">
                   {filteredOrders.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-20 text-gray-500 gap-4">
                           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
@@ -401,7 +401,7 @@ const UserCenter: React.FC<UserCenterProps> = ({
                                         <button onClick={(e) => { e.stopPropagation(); onConfirmReceipt(order.id); }} className="px-4 py-1.5 rounded-full bg-ocean-700 text-white font-medium text-xs hover:bg-ocean-600">确认收货</button>
                                       </>
                                   )}
-                                  {(order.status === 'completed' || order.status === 'cancelled') && <button onClick={(e) => { e.stopPropagation(); handleBuyAgain(order); }} className="px-4 py-1.5 rounded-full border border-gold-500 text-gold-500 text-xs font-medium hover:bg-gold-500/10">再来一单</button>}
+                                  {(order.status === 'completed' || order.status === 'cancelled') && <button onClick={(e) => { e.stopPropagation(); handleBuyAgain(order); }} className="px-4 py-1.5 rounded-full border border-gold-600 text-gold-500 text-xs font-medium hover:bg-gold-600/10">再来一单</button>}
                               </div>
                           </div>
                       ))
@@ -421,22 +421,9 @@ const UserCenter: React.FC<UserCenterProps> = ({
       );
   }
 
-  // ... (Keep existing address, coupons, etc. views unchanged, just wrapping in conditional) ...
-  if (currentView === 'addresses') { /* ... existing code ... */ }
-  if (currentView === 'my_reviews') { /* ... existing code ... */ }
-  if (currentView === 'coupons') { /* ... existing code ... */ }
-  if (currentView === 'points_mall') { /* ... existing code ... */ }
-  if (currentView === 'recharge') { /* ... existing code ... */ }
-
-  // Re-inserting the missing parts for other views to ensure file completeness
-  // Using simplified placeholder logic for brevity in this response, assuming user copies relevant blocks or context is preserved.
-  // Ideally, I should output the full file content. Let me paste the full content for other views.
-
-  // ... (Abbreviated for response length, implying full original logic for other views is preserved) ...
-  
   // --- Main Dashboard with Shine Effect ---
   return (
-    <div className="h-screen w-full bg-ocean-900 flex flex-col overflow-hidden relative">
+    <div className="h-full w-full bg-ocean-900 flex flex-col overflow-hidden relative">
       <style>{`
         @keyframes shine {
             0% { transform: translateX(-150%) skewX(-15deg); }
@@ -461,13 +448,13 @@ const UserCenter: React.FC<UserCenterProps> = ({
       `}</style>
       
       <div className="absolute top-0 w-full h-64 bg-gradient-to-b from-ocean-800 to-ocean-900 z-0"></div>
-      <div className="relative z-10 pt-safe-top px-4 pb-4 flex items-center justify-between">
+      <div className="relative z-10 pt-safe-top px-4 pb-4 flex items-center justify-between flex-shrink-0">
          <button onClick={onBack} className="p-2 -ml-2 text-white/80 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
          <h1 className="text-white font-serif tracking-wide">会员中心</h1>
          <button onClick={() => onLogout()} className="p-2 -mr-2 text-gray-400 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg></button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-10 relative z-10 no-scrollbar">
+      <div className="flex-1 overflow-y-auto px-4 pb-[calc(20px+env(safe-area-inset-bottom))] relative z-10 no-scrollbar">
           {/* Black Gold Card with Flip Interaction */}
           <div className="perspective-1000 w-full aspect-[1.8] mb-6 relative group cursor-pointer" onClick={handleCardClick}>
               <div 

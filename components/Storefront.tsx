@@ -97,12 +97,11 @@ const AIPromptModal: React.FC<{ isOpen: boolean; onClose: () => void; onConfirm:
     );
 };
 
-// --- Barrage Component ---
+// --- Updated Vertical Live Chat Style Barrage ---
 interface BarrageItem {
     id: number;
+    name: string;
     text: string;
-    top: number; // 0, 1, 2 representing rows
-    speed: number;
 }
 
 const LiveBarrage: React.FC<{ products: Product[] }> = ({ products }) => {
@@ -117,52 +116,38 @@ const LiveBarrage: React.FC<{ products: Product[] }> = ({ products }) => {
             
             const newItem: BarrageItem = {
                 id: Date.now(),
-                text: `${randomName} ${randomAction} 【${randomProduct.name.substring(0, 6)}...】`,
-                top: Math.floor(Math.random() * 3), // 3 rows
-                speed: 8 + Math.random() * 4 // Random speed 8-12s
+                name: randomName,
+                text: `${randomAction} ${randomProduct.name.substring(0, 5)}...`
             };
 
-            setItems(prev => [...prev, newItem]);
-
-            // Cleanup old items
-            setTimeout(() => {
-                setItems(prev => prev.filter(i => i.id !== newItem.id));
-            }, newItem.speed * 1000);
+            setItems(prev => {
+                const next = [...prev, newItem];
+                if (next.length > 3) return next.slice(next.length - 3); // Keep only last 3
+                return next;
+            });
         };
 
-        const interval = setInterval(addBarrage, 2000);
+        const interval = setInterval(addBarrage, 2500); // Slower, more readable pace
         return () => clearInterval(interval);
     }, [products]);
 
+    // Lifted bottom to avoid overlapping with new safe area padding
     return (
-        <div className="fixed top-[200px] left-0 w-full h-32 pointer-events-none z-30 overflow-hidden">
+        <div className="fixed bottom-[calc(100px+env(safe-area-inset-bottom))] left-3 z-30 flex flex-col gap-2 pointer-events-none w-48">
             {items.map(item => (
                 <div 
                     key={item.id}
-                    className="absolute whitespace-nowrap bg-black/40 backdrop-blur-md text-white text-[10px] px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/10 shadow-lg animate-barrage-move"
-                    style={{
-                        top: `${item.top * 40}px`, // 40px spacing per row
-                        animationDuration: `${item.speed}s`,
-                    }}
+                    className="bg-black/40 backdrop-blur-md text-white text-[10px] px-2 py-1 rounded-full flex items-center gap-2 border border-white/5 shadow-lg animate-fade-in-up"
                 >
-                    <div className="w-4 h-4 rounded-full bg-gradient-to-tr from-gold-500 to-gold-300 flex items-center justify-center text-[8px] text-ocean-900 font-bold">
-                        购
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-gold-500 to-gold-300 flex items-center justify-center text-[8px] text-ocean-900 font-bold flex-shrink-0">
+                        {item.name[0]}
                     </div>
-                    <span className="font-medium tracking-wide">{item.text}</span>
+                    <div className="min-w-0">
+                        <span className="text-gold-200 opacity-90 mr-1">{item.name}</span>
+                        <span className="text-white/90">{item.text}</span>
+                    </div>
                 </div>
             ))}
-            <style>{`
-                @keyframes barrage-move {
-                    from { transform: translateX(100vw); }
-                    to { transform: translateX(-100%); }
-                }
-                .animate-barrage-move {
-                    animation-name: barrage-move;
-                    animation-timing-function: linear;
-                    animation-fill-mode: forwards;
-                    left: 0; 
-                }
-            `}</style>
         </div>
     );
 };
@@ -545,9 +530,9 @@ const Storefront: React.FC<StorefrontProps> = ({ products, onAddToCart, onBack, 
       <div 
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto pb-20 no-scrollbar scroll-smooth"
+        className="flex-1 overflow-y-auto pb-[calc(20px+env(safe-area-inset-bottom))] no-scrollbar scroll-smooth"
       >
-        {/* LIVE BARRAGE COMPONENT */}
+        {/* LIVE BARRAGE COMPONENT (Now Vertical) */}
         {storeConfig?.isLiveMode && <LiveBarrage products={products} />}
 
         {/* HERO SECTION (Immersive) */}
@@ -660,7 +645,7 @@ const Storefront: React.FC<StorefrontProps> = ({ products, onAddToCart, onBack, 
         )}
 
         {/* Product Grid */}
-        <div className="p-3 pb-safe-bottom">
+        <div className="p-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
             {isAISearching ? (
                 <div className="grid grid-cols-2 gap-3">
                     {[1,2,3,4].map(i => (
@@ -715,7 +700,7 @@ const Storefront: React.FC<StorefrontProps> = ({ products, onAddToCart, onBack, 
       {showScrollTop && (
           <button 
             onClick={scrollToTop}
-            className="absolute bottom-6 right-6 z-40 w-10 h-10 bg-ocean-800/80 backdrop-blur-md rounded-full border border-gold-500/30 flex items-center justify-center text-gold-500 shadow-lg animate-fade-in hover:bg-ocean-700 active:scale-95"
+            className="absolute bottom-24 right-4 z-40 w-10 h-10 bg-ocean-800/80 backdrop-blur-md rounded-full border border-gold-500/30 flex items-center justify-center text-gold-500 shadow-lg animate-fade-in hover:bg-ocean-700 active:scale-95"
           >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
           </button>

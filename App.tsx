@@ -430,7 +430,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="h-full w-full bg-ocean-900 font-sans text-white select-none overflow-hidden">
+    <div className="h-[100dvh] w-full bg-ocean-900 font-sans text-white select-none overflow-hidden relative">
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
       {appState === AppState.WELCOME && (
