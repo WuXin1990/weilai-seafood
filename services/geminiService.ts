@@ -20,21 +20,27 @@ export class GeminiService {
   // --- Context Generators ---
   private getSeasonalContext(): string {
       const now = new Date();
+      const month = now.getMonth() + 1;
+      const day = now.getDate();
       const hour = now.getHours();
       const weekDay = now.getDay(); // 0 is Sunday
       
+      // 1. 节日氛围感知 (模拟)
+      let festivalContext = "";
+      if (month === 1 || month === 2) festivalContext = "临近春节/元宵，重点推荐：寓意吉祥的年夜饭硬菜（如帝王蟹、鲍鱼）、高档礼盒。话术要喜庆，多提'团圆'、'面子'。";
+      else if (month === 5 && day > 15 && day < 21) festivalContext = "临近520情人节，重点推荐：浪漫的烛光晚餐食材（如煎带子、三文鱼、牛排）。话术要浪漫，提'仪式感'。";
+      else if (month === 9 || month === 10) festivalContext = "金秋九月，正是吃蟹的好季节。重点推荐：各类螃蟹、虾类。强调'肥美'、'时令'。";
+      else if (weekDay === 5) festivalContext = "今天是周五，'Happy Friday'！用户可能想在这个周末好好放松一下。推荐：适合配酒的刺身、懒人海鲜锅。";
+
+      // 2. 时段氛围
       let timeContext = "";
-      if (hour >= 5 && hour < 10) timeContext = "当前是清晨，氛围：充满活力、健康。重点推荐：营养早餐、清淡鱼肉（如银鳕鱼、三文鱼）。";
-      else if (hour >= 10 && hour < 14) timeContext = "当前是午间，氛围：高效、犒劳自己。重点推荐：午餐加餐、方便烹饪的虾贝。";
-      else if (hour >= 14 && hour < 17) timeContext = "当前是下午，氛围：悠闲、筹备晚餐。重点推荐：今晚的硬菜素材（如帝王蟹、龙虾）。";
-      else if (hour >= 17 && hour < 22) timeContext = "当前是晚间，氛围：温馨、家庭聚餐、享受生活。重点推荐：适合多人分享的大餐、下酒菜。";
-      else timeContext = "当前是深夜，氛围：私密、馋嘴、夜宵。重点推荐：低脂解馋的刺身、小海鲜，或者聊聊美食话题助眠。";
+      if (hour >= 5 && hour < 10) timeContext = "当前是清晨。用户可能刚醒。语气要元气满满。推荐：营养早餐（银鳕鱼粥、虾仁蛋羹）。";
+      else if (hour >= 10 && hour < 14) timeContext = "当前是午间饭点。用户可能在觅食。语气要轻快。推荐：午餐加餐、做法简单的快手菜。";
+      else if (hour >= 14 && hour < 17) timeContext = "当前是下午。用户可能在摸鱼或筹备晚餐。推荐：今晚的硬菜素材，提醒'提前解冻'。";
+      else if (hour >= 17 && hour < 21) timeContext = "当前是晚间黄金时间。氛围：温馨、家庭聚餐。推荐：适合多人分享的大餐、下酒菜。";
+      else timeContext = "当前是深夜。氛围：私密、馋嘴、夜宵。推荐：低脂解馋的刺身、小海鲜，或者聊聊美食话题助眠。别推荐太油腻的。";
 
-      let dayContext = "";
-      if (weekDay === 0 || weekDay === 6) dayContext = "今天是周末，用户可能有更多时间烹饪或宴请朋友。";
-      else dayContext = "今天是工作日，用户可能更倾向于做法简单或能够快速发货的商品。";
-
-      return `${timeContext} ${dayContext}`;
+      return `${festivalContext} ${timeContext}`;
   }
 
   generateLocalGreeting(user: User | null): string {
@@ -44,23 +50,23 @@ export class GeminiService {
     
     // Randomized greetings based on time
     const morningGreetings = [
-        `早安，${name}！美好的一天从优质蛋白开始，今天想吃点清淡的鱼吗？`,
+        `早安，${name}！美好的一天从优质蛋白开始，今天想吃点清淡的鱼吗？🐟`,
         `${name}，早上好！昨晚休息得好吗？咱们的深海银鳕鱼刚到货，特别适合做早餐哦。`
     ];
     const noonGreetings = [
-        `中午好，${name}！忙碌了一上午，记得对自己好一点。今天中午想加个餐吗？`,
-        `饭点到啦，${name}！有没有想念大海的味道？`
+        `中午好，${name}！忙碌了一上午，记得对自己好一点。今天中午想加个餐吗？🥢`,
+        `饭点到啦，${name}！有没有想念大海的味道？来份刺身提提神如何？`
     ];
     const afternoonGreetings = [
-        `下午好，${name}！正在为今晚的菜单发愁吗？我是您的私厨顾问魏来，随时为您效劳。`,
-        `下午好！刚下直播，给您留了几只特别好的螃蟹，要不要看看？`
+        `下午好，${name}！正在为今晚的菜单发愁吗？我是您的私厨顾问魏来，随时为您效劳。👨‍🍳`,
+        `下午好！刚下直播，给您留了几只特别好的螃蟹，要不要看看？🦀`
     ];
     const eveningGreetings = [
-        `晚上好，${name}！辛苦一天了，今晚值得来顿海鲜大餐犒劳一下自己。`,
+        `晚上好，${name}！辛苦一天了，今晚值得来顿海鲜大餐犒劳一下自己。🥂`,
         `夜色真美，${name}。配上一份鲜甜的刺身，再来杯白葡萄酒，简直完美。`
     ];
     const nightGreetings = [
-        `夜深了，${name}。是不是有点馋了？咱们的甜虾低脂不胖，当夜宵刚刚好。`,
+        `夜深了，${name}。是不是有点馋了？咱们的甜虾低脂不胖，当夜宵刚刚好。🌙`,
         `这么晚还没睡呀？如果是饿了，魏来这就给您推荐点解馋的小海鲜。`
     ];
 
@@ -74,44 +80,61 @@ export class GeminiService {
   }
 
   private getSystemInstruction(catalog: Product[], user: User | null, orders: Order[] = [], cart: CartItem[] = []) {
-    const catalogString = catalog.map(p => `- ID: ${p.id}, 名称: ${p.name}, 价格: ¥${p.price}, 库存: ${p.stock}, 标签: ${p.tags.join(', ')}`).join('\n');
+    // 构建详细的商品知识库
+    const catalogString = catalog.map(p => `
+    【商品ID: ${p.id}】
+    - 名称: ${p.name}
+    - 价格: ¥${p.price} / ${p.unit}
+    - 库存: ${p.stock} (库存少于10时请提示用户“手慢无”)
+    - 产地: ${p.origin || '全球甄选'}
+    - 描述: ${p.description}
+    - 推荐做法: ${p.cookingMethod || '建议清蒸或刺身，保留原味'}
+    - 营养价值: ${p.nutrition || '富含优质蛋白和微量元素'}
+    - 标签: ${p.tags.join(', ')}
+    `).join('\n');
     
     const userLevel = user ? (user.level === 'black_gold' ? '尊贵的黑金会员' : user.level === 'diamond' ? '钻石会员' : '会员') : '新朋友';
-    const userContext = user ? `用户身份: ${userLevel} ${user.name}, 余额: ¥${user.balance}` : "用户身份: 访客";
+    const userContext = user ? `用户身份: ${userLevel} ${user.name}, 余额: ¥${user.balance}` : "用户身份: 访客 (未登录)";
     
-    const cartContext = cart.length > 0 ? "购物车当前有: " + cart.map(c => `${c.name} x${c.quantity}`).join(', ') : "购物车为空";
+    const cartContext = cart.length > 0 
+        ? "购物车当前有: " + cart.map(c => `${c.name} x${c.quantity}`).join(', ') 
+        : "购物车为空";
     
     const recentOrders = orders.slice(0, 3).map(o => `${o.date}买了${o.items.map(i=>i.name).join(',')}`).join("; ");
-    const historyContext = recentOrders ? `用户最近买过: ${recentOrders}。如果用户问起，可以礼貌询问上次吃得怎么样。` : "用户暂无近期订单。";
+    const historyContext = recentOrders ? `用户最近买过: ${recentOrders}。` : "用户暂无近期订单。";
 
     return `
-    你叫“魏来”，是【魏来海鲜】的高级私人海鲜管家，也是一位懂生活、爱美食的老饕。
-    你的语气：高端、温暖、热情、高情商（High EQ）。
+    你叫“魏来”，是【魏来海鲜】的高级私人海鲜管家，也是一位懂生活、爱美食、高情商（High EQ）的老饕主厨。
+    你的目标：通过像老朋友一样的对话，解决用户的烹饪/选购难题，提供情绪价值，并自然地引导成交。
     
-    【你的核心人设】：
-    1. **有温度**：不要像机器人一样回答。使用“您”、“咱家”、“咱们”拉近距离。适当使用 Emoji (🐟, 🦀, ✨, 🥂)。
-    2. **专业主厨**：不仅卖货，更懂吃。用户问“螃蟹”，你要主动教他怎么蒸、配什么醋。
-    3. **主动关怀**：根据时间段主动问候。如果用户犹豫，给予鼓励；如果用户购买，赞美他的品味。
+    【核心人设 & 语气】：
+    1.  **拒绝机械**：绝对不要像机器人一样回答问题。禁止使用“亲”、“为您查询到”等廉价客服用语。
+    2.  **老友感**：使用“您”、“咱家”、“咱们”、“听我的准没错”来拉近距离。适当使用 Emoji (🐟, 🦀, ✨, 🥂, 👨‍🍳)。
+    3.  **懂行**：聊到海鲜时，要流露出对食材的赞叹。例如：“这批海胆黄特别饱满，我自己都留了两盒。”
 
-    【对话策略】：
-    1. **需求挖掘**：不要只回答问题，要反问挖掘场景。
-       - 用户问：“有龙虾吗？” -> 你回：“有的！您是打算**自己尝鲜**，还是**家宴请客**呢？如果是请客，我推荐个头更大的波士顿龙虾，特有面子！”
-    2. **情感共鸣**：
-       - 用户嫌贵 -> “一分钱一分货呀，这可是深海直采的，口感和菜场完全不一样，尝一口您就知道值了！”
-       - 用户不知道吃什么 -> “这种天气，最适合喝点热乎的鱼汤了，要不试试咱们的长寿鱼？”
-    3. **利用上下文**：
-       - 你知道现在的时间 (${new Date().toLocaleTimeString()})。${this.getSeasonalContext()}
-       - 你知道用户的历史 (${historyContext})。
-       - 你知道购物车 (${cartContext})。如果购物车有东西，可以提示“您车里的那个...现在库存不多了哦”。
+    【对话策略 (High EQ)】：
+    1.  **主动挖掘场景 (反问)**：
+        -   用户问：“有龙虾吗？” 
+        -   ❌ 差回答：“有的，波士顿龙虾268一只。”
+        -   ✅ 好回答：“有的！您是打算**自己尝鲜**，还是**家宴请客**呢？如果是请客，我推荐个头更大的，摆盘特有面子！”
+    2.  **情绪共鸣与安抚**：
+        -   用户说：“太贵了。”
+        -   ✅ 回答：“一分钱一分货呀，这可是深海直采的，口感和菜场完全不一样。咱们偶尔也得犒劳一下辛苦的自己，您说是吧？”
+        -   用户说：“不知道怎么做。”
+        -   ✅ 回答：“别担心，这个其实特简单！听我的，直接清蒸，出锅泼点热油，那香味能把隔壁小孩馋哭！我还可以给您发个详细步骤。”
+    3.  **利用上下文**：
+        -   **时间感知**：${this.getSeasonalContext()}
+        -   **用户历史**：${historyContext} (如果用户复购，一定要说：“哎呀，老朋友又来啦！上次那个鱼吃得还满意吗？”)。
+        -   **购物车**：${cartContext} (如果车里有东西，可以提示搭配，例如买蟹提示买醋)。
 
-    【关键规则 - 推荐商品】：
-    如果你在对话中明确推荐了商品（且确定是店铺里有的），请务必在回答的最后，附加一个 JSON 数据块，格式严格如下：
+    【严格规则 - 推荐商品】：
+    如果你在对话中明确推荐了具体的商品（且确定是店铺里有的），请务必在回答的最后，附加一个 JSON 数据块，格式严格如下（不要有其他 Markdown）：
     \`\`\`json
     { "recommendedProductIds": ["id1", "id2"] }
     \`\`\`
     如果只是普通聊天，绝对不要输出这个 JSON。
 
-    【当前店铺商品列表】：
+    【店铺商品列表 (知识库)】：
     ${catalogString}
 
     【用户信息】：
@@ -129,10 +152,12 @@ export class GeminiService {
         { role: 'system', content: sysInstruction }
     ];
 
-    // No need to inject artificial user prompt here if we want the AI to greet first naturally in the UI layer
-    // But if there is a specific product context, we inject it as a "System Context Trigger"
+    // 如果用户是从某个商品点进来的，注入一个上下文触发器，让 AI 主动破冰
     if (initialProductContext) {
-        this.chatHistory.push({ role: 'user', content: `(系统提示：用户正在浏览商品【${initialProductContext.name}】，请你作为导购主动搭话，介绍这个产品的亮点，并询问由于什么原因感兴趣)` });
+        this.chatHistory.push({ role: 'user', content: `(系统提示：用户正在浏览商品【${initialProductContext.name}】，请你作为导购主动搭话。
+        1. 热情地打招呼。
+        2. 用诱人的语言简要介绍它的最大亮点（产地/口感）。
+        3. 询问用户是想怎么吃（比如刺身还是熟食），以便提供建议。)` });
     }
   }
 
@@ -328,6 +353,7 @@ export class GeminiService {
         "description": "描述", "origin": "产地", 
         "tags": ["标签"], "nutrition": "营养", "cookingMethod": "做法" 
       }
+      请确保提取的信息准确，不要包含多余的文字。如果没有明确信息，根据海鲜常识合理推断。
       `;
       const res = await this.runSimpleTask(prompt);
       try { return JSON.parse(res.replace(/```json/g, '').replace(/```/g, '').trim()); } catch (e) { return {}; }
