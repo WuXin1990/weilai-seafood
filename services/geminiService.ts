@@ -1,6 +1,9 @@
 
 import { Product, User, Address, Order, BanquetMenu, Message, MessageRole, CartItem } from "../types";
 
+// 解决 TS2580 报错：显式声明 process 变量，防止 tsc 检查失败
+declare const process: any;
+
 // DEEPSEEK CONFIGURATION
 // 使用 Vercel 环境变量中的 Key
 const API_KEY = process.env.API_KEY; 
