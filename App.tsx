@@ -93,11 +93,12 @@ const App: React.FC = () => {
     setAppState(AppState.CHAT);
     
     // Initialize session with current cart context
-    if (!geminiService['chatSession']) {
+    // Logic: if messages are empty, we start fresh. If not, we resume to update context.
+    if (messages.length === 0) {
          geminiService.startChat(products, user, undefined, orders, cart);
          
          // If starting fresh without specific product, show welcome
-         if (!initialProductContext && messages.length === 0) {
+         if (!initialProductContext) {
              const greeting = geminiService.generateLocalGreeting(user);
              setMessages([{
                  id: Date.now().toString(),
@@ -106,8 +107,7 @@ const App: React.FC = () => {
              }]);
          }
     } else {
-        // If session exists, update context by resuming (re-init with current data)
-        // Ideally we would send a hidden message, but re-init is safer for prompt update
+        // If session exists (messages exist), update context by resuming
         geminiService.resumeChat(products, user, messages, orders, cart);
     }
 

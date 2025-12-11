@@ -393,7 +393,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           const prod = products.find(p => p.id === id);
           return prod ? { ...prod, soldQty: qty } : null;
       })
-      .filter(Boolean);
+      .filter((item): item is (Product & { soldQty: number }) => item !== null);
 
 
   const handleEditClick = (product: Product) => { 
