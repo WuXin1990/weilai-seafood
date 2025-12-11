@@ -93,11 +93,10 @@ const App: React.FC = () => {
     setAppState(AppState.CHAT);
     
     // Initialize session with current cart context
-    // Logic: if messages are empty, we start fresh. If not, we resume to update context.
     if (messages.length === 0) {
-         geminiService.startChat(products, user, undefined, orders, cart);
+         geminiService.startChat(products, user, initialProductContext, orders, cart);
          
-         // If starting fresh without specific product, show welcome
+         // If NOT looking at a specific product, show the dynamic daily greeting
          if (!initialProductContext) {
              const greeting = geminiService.generateLocalGreeting(user);
              setMessages([{
@@ -105,15 +104,28 @@ const App: React.FC = () => {
                  role: MessageRole.MODEL,
                  text: greeting
              }]);
+         } else {
+             // If looking at a product, let the AI generate the opening based on the context trigger
+             setIsLoadingChat(true);
+             // We trigger a dummy send to get the AI to introduce the product
+             geminiService.sendMessageStream("", undefined, (chunk) => {}).then(res => {
+                 setMessages(prev => [...prev, {
+                     id: Date.now().toString(),
+                     role: MessageRole.MODEL,
+                     text: res.text,
+                     productContext: initialProductContext
+                 }]);
+                 setIsLoadingChat(false);
+             });
          }
     } else {
-        // If session exists (messages exist), update context by resuming
+        // If session exists, update context
         geminiService.resumeChat(products, user, messages, orders, cart);
-    }
-
-    // If consulting about a specific product
-    if (initialProductContext) {
-        handleSendMessage(`我想了解一下【${initialProductContext.name}】`, initialProductContext.image, initialProductContext);
+        
+        // If consulting about a specific product mid-session
+        if (initialProductContext) {
+            handleSendMessage(`我想了解一下【${initialProductContext.name}】`, initialProductContext.image, initialProductContext);
+        }
     }
   };
 
