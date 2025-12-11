@@ -41,23 +41,33 @@
       }
     </script>
     <style>
+      /* WeChat Mobile Reset */
       html, body {
-        height: 100%;
+        position: fixed; /* Critical: locks the viewport */
+        top: 0;
+        left: 0;
         width: 100%;
-        overflow: hidden; /* Critical for WeChat: prevents body scroll */
-        position: fixed; /* Lock body in place */
+        height: 100%;
+        overflow: hidden;
+        overscroll-behavior: none; /* Disables pull-to-refresh effects */
+        -webkit-overflow-scrolling: touch;
       }
+      
       body {
         background-color: #0f172a;
         color: #f8fafc;
         -webkit-font-smoothing: antialiased;
         -webkit-tap-highlight-color: transparent;
       }
+
       #root {
-        height: 100%; /* Will become 100dvh in App.tsx */
         width: 100%;
+        height: 100%;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
       }
+
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       

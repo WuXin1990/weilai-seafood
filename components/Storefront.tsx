@@ -530,7 +530,7 @@ const Storefront: React.FC<StorefrontProps> = ({ products, onAddToCart, onBack, 
       <div 
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto pb-[calc(20px+env(safe-area-inset-bottom))] no-scrollbar scroll-smooth"
+        className="flex-1 overflow-y-auto pb-[calc(40px+env(safe-area-inset-bottom))] no-scrollbar scroll-smooth"
       >
         {/* LIVE BARRAGE COMPONENT (Now Vertical) */}
         {storeConfig?.isLiveMode && <LiveBarrage products={products} />}
