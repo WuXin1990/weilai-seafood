@@ -1,19 +1,23 @@
 
-import { Product, User, Address, Order, BanquetMenu, Message, MessageRole, CartItem } from "../types";
+import { GoogleGenAI, Content, Part } from "@google/genai";
+import { Product, User, Order, BanquetMenu, Message, MessageRole, CartItem, Address } from "../types";
 
-// 解决 TS2580 报错：显式声明 process 变量，防止 tsc 检查失败
+// 解决 TS2580 报错：显式声明 process 变量
 declare const process: any;
 
-// DEEPSEEK CONFIGURATION
-// 使用 Vercel 环境变量中的 Key
-const API_KEY = process.env.API_KEY; 
-const API_URL = "https://api.deepseek.com/chat/completions";
-const MODEL_NAME = "deepseek-chat";
+// Initialization
+// The API key must be obtained exclusively from process.env.API_KEY
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const MODEL_NAME = "gemini-2.5-flash";
 
 export class GeminiService {
   private currentCatalog: Product[] = [];
-  // DeepSeek / OpenAI uses { role: 'user' | 'assistant' | 'system', content: string }
-  private chatHistory: { role: string; content: string }[] = [];
+  private currentUser: User | null = null;
+  private currentOrders: Order[] = [];
+  private currentCart: CartItem[] = [];
+  
+  // Gemini uses { role: 'user' | 'model', parts: [...] }
+  private chatHistory: Content[] = [];
 
   constructor() {}
 
@@ -101,15 +105,15 @@ export class GeminiService {
         : "购物车为空";
     
     const recentOrders = orders.slice(0, 3).map(o => `${o.date}买了${o.items.map(i=>i.name).join(',')}`).join("; ");
-    const historyContext = recentOrders ? `用户最近买过: ${recentOrders}。` : "用户暂无近期订单。";
+    const historyContext = recentOrders ? `用户最近买过: ${recentOrders}。` : "用户暂无近期订单 (或者是新客)。";
 
     return `
     你叫“魏来”，是【魏来海鲜】的高级私人海鲜管家，也是一位懂生活、爱美食、高情商（High EQ）的老饕主厨。
     你的目标：通过像老朋友一样的对话，解决用户的烹饪/选购难题，提供情绪价值，并自然地引导成交。
     
     【核心人设 & 语气】：
-    1.  **拒绝机械**：绝对不要像机器人一样回答问题。禁止使用“亲”、“为您查询到”等廉价客服用语。
-    2.  **老友感**：使用“您”、“咱家”、“咱们”、“听我的准没错”来拉近距离。适当使用 Emoji (🐟, 🦀, ✨, 🥂, 👨‍🍳)。
+    1.  **极度拟人化**：拒绝机械回复。禁止使用“为您查询到”、“亲”、“系统”等词汇。要把自己当成用户微信里的一个懂吃的朋友。
+    2.  **老友感**：使用“您”、“咱家”、“咱们”、“听我的准没错”来拉近距离。适当使用 Emoji (🐟, 🦀, ✨, 🥂, 👨‍🍳, 🤤)。
     3.  **懂行**：聊到海鲜时，要流露出对食材的赞叹。例如：“这批海胆黄特别饱满，我自己都留了两盒。”
 
     【对话策略 (High EQ)】：
@@ -118,14 +122,12 @@ export class GeminiService {
         -   ❌ 差回答：“有的，波士顿龙虾268一只。”
         -   ✅ 好回答：“有的！您是打算**自己尝鲜**，还是**家宴请客**呢？如果是请客，我推荐个头更大的，摆盘特有面子！”
     2.  **情绪共鸣与安抚**：
-        -   用户说：“太贵了。”
-        -   ✅ 回答：“一分钱一分货呀，这可是深海直采的，口感和菜场完全不一样。咱们偶尔也得犒劳一下辛苦的自己，您说是吧？”
-        -   用户说：“不知道怎么做。”
-        -   ✅ 回答：“别担心，这个其实特简单！听我的，直接清蒸，出锅泼点热油，那香味能把隔壁小孩馋哭！我还可以给您发个详细步骤。”
-    3.  **利用上下文**：
+        -   用户嫌贵 -> 强调品质和体验：“一分钱一分货呀，这可是深海直采的，口感和菜场完全不一样。咱们偶尔也得犒劳一下辛苦的自己，您说是吧？”
+        -   用户担心做法 -> 给予信心：“别担心，这个其实特简单！听我的，直接清蒸，出锅泼点热油，那香味能把隔壁小孩馋哭！我还可以给您发个详细步骤。”
+    3.  **个性化关怀 (利用上下文)**：
         -   **时间感知**：${this.getSeasonalContext()}
-        -   **用户历史**：${historyContext} (如果用户复购，一定要说：“哎呀，老朋友又来啦！上次那个鱼吃得还满意吗？”)。
-        -   **购物车**：${cartContext} (如果车里有东西，可以提示搭配，例如买蟹提示买醋)。
+        -   **老客叙旧**：${historyContext} (如果用户有购买记录，一定要说：“哎呀，老朋友又来啦！上次那个[商品名]吃得还满意吗？”)。
+        -   **购物车暗示**：${cartContext} (如果车里有东西，可以顺便提示搭配，例如买蟹提示买醋)。
 
     【严格规则 - 推荐商品】：
     如果你在对话中明确推荐了具体的商品（且确定是店铺里有的），请务必在回答的最后，附加一个 JSON 数据块，格式严格如下（不要有其他 Markdown）：
@@ -144,111 +146,95 @@ export class GeminiService {
 
   // --- Chat Lifecycle ---
 
-  startChat(catalog: Product[], user: User | null, initialProductContext?: Product, orders: Order[] = [], cart: CartItem[] = []) {
+  startChat(catalog: Product[], user: User | null, initialProductContext?: Product, orders: Order[] = [], cart: CartItem[] = []): string | null {
     this.currentCatalog = catalog;
-    const sysInstruction = this.getSystemInstruction(catalog, user, orders, cart);
-    
-    this.chatHistory = [
-        { role: 'system', content: sysInstruction }
-    ];
+    this.currentUser = user;
+    this.currentOrders = orders;
+    this.currentCart = cart;
+    this.chatHistory = [];
 
-    // 如果用户是从某个商品点进来的，注入一个上下文触发器，让 AI 主动破冰
     if (initialProductContext) {
-        this.chatHistory.push({ role: 'user', content: `(系统提示：用户正在浏览商品【${initialProductContext.name}】，请你作为导购主动搭话。
-        1. 热情地打招呼。
-        2. 用诱人的语言简要介绍它的最大亮点（产地/口感）。
-        3. 询问用户是想怎么吃（比如刺身还是熟食），以便提供建议。)` });
+        // Inject trigger message as user prompt to guide AI behavior
+        this.chatHistory.push({ 
+            role: 'user', 
+            parts: [{ text: `(系统提示：用户正在浏览商品【${initialProductContext.name}】，请你作为导购主动搭话。1. 热情地打招呼。2. 用诱人的语言简要介绍它的最大亮点（产地/口感）。3. 询问用户是想怎么吃（比如刺身还是熟食），以便提供建议。)` }] 
+        });
+        return null; // Let the AI generate the first response based on the trigger
+    } else {
+        // Standard Entry: Generate a local greeting and STORE IT IN HISTORY so AI knows it said it.
+        const greeting = this.generateLocalGreeting(user);
+        this.chatHistory.push({ role: 'model', parts: [{ text: greeting }] });
+        return greeting;
     }
   }
 
   resumeChat(catalog: Product[], user: User | null, messageHistory: Message[], orders: Order[] = [], cart: CartItem[] = []) {
       this.currentCatalog = catalog;
-      const sysInstruction = this.getSystemInstruction(catalog, user, orders, cart);
+      this.currentUser = user;
+      this.currentOrders = orders;
+      this.currentCart = cart;
       
-      // Rebuild history logic
-      this.chatHistory = [
-          { role: 'system', content: sysInstruction },
-          ...messageHistory
-            .filter(m => m.role !== MessageRole.SYSTEM && !m.isStreaming)
-            .map(m => ({
-                role: m.role === MessageRole.USER ? 'user' : 'assistant',
-                content: m.text
-            }))
-      ];
+      // Map App Message format to Gemini Content format
+      this.chatHistory = messageHistory
+        .filter(m => m.role !== MessageRole.SYSTEM && !m.isStreaming)
+        .map(m => ({
+            role: m.role === MessageRole.USER ? 'user' : 'model',
+            parts: [{ text: m.text }] 
+        }));
   }
 
-  // --- Streaming Chat Implementation (DeepSeek via Fetch) ---
+  // --- Streaming Chat Implementation (Google GenAI SDK) ---
   async sendMessageStream(
       message: string, 
       image: string | undefined, 
       onTextChunk: (text: string) => void
   ): Promise<{ text: string, recommendations?: Product[] }> {
     
-    let content = message;
+    const parts: Part[] = [{ text: message }];
+    
     if (image) {
-        content += " [系统提示：用户发送了一张图片，请根据上下文推测（比如询问这是什么鱼，或者怎么做），并礼貌回应]"; 
+        try {
+            // image is "data:image/png;base64,..."
+            const [metadata, base64Data] = image.split(',');
+            const mimeType = metadata.match(/:(.*?);/)?.[1] || 'image/jpeg';
+            parts.push({ inlineData: { mimeType, data: base64Data } });
+        } catch (e) {
+            console.error("Failed to parse image data", e);
+        }
     }
 
-    this.chatHistory.push({ role: 'user', content: content });
+    const userContent: Content = { role: 'user', parts };
+    this.chatHistory.push(userContent);
+
+    // Regenerate system instruction with latest context
+    const systemInstruction = this.getSystemInstruction(
+        this.currentCatalog, 
+        this.currentUser, 
+        this.currentOrders, 
+        this.currentCart
+    );
 
     try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${API_KEY}`
-            },
-            body: JSON.stringify({
-                model: MODEL_NAME,
-                messages: this.chatHistory,
-                stream: true,
-                temperature: 1.3, // High creativity for "human-like" interaction
-                max_tokens: 1024,
-                presence_penalty: 0.6, // Encourage new topics
-                frequency_penalty: 0.3
-            })
+        const response = await ai.models.generateContentStream({
+            model: MODEL_NAME,
+            contents: this.chatHistory,
+            config: {
+                systemInstruction: systemInstruction,
+                temperature: 1.0, // High creativity for "human-like" interaction
+            }
         });
 
-        if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(`DeepSeek API Error ${response.status}: ${errText}`);
-        }
-        
-        if (!response.body) throw new Error('No response body');
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
         let fullText = "";
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-            
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const dataStr = line.slice(6).trim();
-                    if (dataStr === '[DONE]') break;
-                    
-                    try {
-                        const data = JSON.parse(dataStr);
-                        const contentChunk = data.choices[0]?.delta?.content || "";
-                        if (contentChunk) {
-                            fullText += contentChunk;
-                            onTextChunk(fullText);
-                        }
-                    } catch (e) {
-                        // ignore incomplete chunks
-                    }
-                }
+        for await (const chunk of response) {
+            const text = chunk.text;
+            if (text) {
+                fullText += text;
+                onTextChunk(fullText);
             }
         }
 
         // Post-processing for recommendations (Extracting the JSON block)
         let recommendations: Product[] = [];
-        // Regex to find ```json { ... } ``` or just { ... } at the end
         const jsonMatch = fullText.match(/```json\s*(\{[\s\S]*?\})\s*```/);
         let finalText = fullText;
 
@@ -266,12 +252,12 @@ export class GeminiService {
             }
         }
 
-        this.chatHistory.push({ role: 'assistant', content: fullText }); // Store raw response including JSON for context
+        this.chatHistory.push({ role: 'model', parts: [{ text: fullText }] }); // Store raw response including JSON
         return { text: finalText, recommendations };
 
     } catch (error) {
-        console.error("DeepSeek API Connection Failed:", error);
-        return { text: "网络繁忙，管家正在接待其他贵宾，请稍后重试。(请检查 API Key 配置)", recommendations: [] };
+        console.error("Gemini API Error:", error);
+        return { text: "网络繁忙，管家正在接待其他贵宾，请稍后重试。", recommendations: [] };
     }
   }
 
@@ -279,24 +265,15 @@ export class GeminiService {
       return this.sendMessageStream(message, image, () => {});
   }
 
-  // --- Functional Features (Using DeepSeek for JSON tasks) ---
+  // --- Functional Features (Using Gemini) ---
 
   async runSimpleTask(prompt: string): Promise<string> {
       try {
-          const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${API_KEY}`
-            },
-            body: JSON.stringify({
-                model: MODEL_NAME,
-                messages: [{ role: 'user', content: prompt }],
-                stream: false
-            })
-        });
-        const data = await response.json();
-        return data.choices[0].message.content;
+          const response = await ai.models.generateContent({
+            model: MODEL_NAME,
+            contents: prompt,
+          });
+          return response.text || "";
       } catch (e) {
           console.error("Task Error:", e);
           return "";

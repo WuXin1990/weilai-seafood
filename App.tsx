@@ -94,17 +94,17 @@ const App: React.FC = () => {
     
     // Initialize session with current cart context
     if (messages.length === 0) {
-         geminiService.startChat(products, user, initialProductContext, orders, cart);
+         // Get the greeting (if any) directly from startChat to ensure history sync
+         const greeting = geminiService.startChat(products, user, initialProductContext, orders, cart);
          
-         // If NOT looking at a specific product, show the dynamic daily greeting
-         if (!initialProductContext) {
-             const greeting = geminiService.generateLocalGreeting(user);
+         // If NOT looking at a specific product, show the dynamic daily greeting returned by service
+         if (!initialProductContext && greeting) {
              setMessages([{
                  id: Date.now().toString(),
                  role: MessageRole.MODEL,
                  text: greeting
              }]);
-         } else {
+         } else if (initialProductContext) {
              // If looking at a product, let the AI generate the opening based on the context trigger
              setIsLoadingChat(true);
              // We trigger a dummy send to get the AI to introduce the product
