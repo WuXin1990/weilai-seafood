@@ -10,7 +10,8 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     define: {
-      'process.env.API_KEY': JSON.stringify(env.API_KEY || process.env.API_KEY),
+      // API_KEY is now handled securely on the server (Vercel Edge Function).
+      // We do NOT inject it into the client bundle anymore to prevent leaks.
     },
     server: {
       host: '0.0.0.0', // Allow access from network (critical for WeChat DevTools on same wifi)
