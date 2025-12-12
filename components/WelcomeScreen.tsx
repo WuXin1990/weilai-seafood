@@ -4,7 +4,7 @@ import React from 'react';
 interface WelcomeScreenProps {
   onStartChat: () => void;
   onEnterStore: () => void;
-  onEnterDiscovery: () => void; // New prop
+  onEnterDiscovery: () => void;
   onEnterAdmin: () => void;
   onOpenProfile: () => void;
   isLoggedIn: boolean;
@@ -95,7 +95,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onStartChat, onEnterStore
 
           {/* Live Badge (Floating) */}
           <div className="absolute top-28 right-8 animate-pulse-ring rounded-full">
-              <div className="flex items-center gap-2 bg-red-600/90 border border-red-500/20 px-3 py-1.5 rounded-full backdrop-blur-sm shadow-xl">
+              <div className="flex items-center gap-2 bg-red-600/90 border border-red-500/20 px-3 py-1.5 rounded-full backdrop-blur-sm shadow-xl cursor-pointer hover:scale-105 transition-transform" onClick={onEnterStore}>
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
