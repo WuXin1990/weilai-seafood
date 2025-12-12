@@ -86,14 +86,12 @@ const RechargeSuccess: React.FC<{ onComplete: () => void }> = ({ onComplete }) =
     );
 };
 
-// --- VIP Privileges Modal ---
+// ... (VIPPrivilegesModal remains mostly same) ...
 const VIPPrivilegesModal: React.FC<{ isOpen: boolean; onClose: () => void; currentLevel: string }> = ({ isOpen, onClose, currentLevel }) => {
     if (!isOpen) return null;
     return (
         <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
             <div className="bg-gradient-to-b from-ocean-800 to-ocean-900 border border-gold-500/30 w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl relative" onClick={e => e.stopPropagation()}>
-                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"><svg className="w-40 h-40 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/></svg></div>
-                
                 <div className="p-6 text-center border-b border-ocean-700 bg-gold-600/10">
                     <h3 className="text-xl font-serif text-gold-500 font-bold">尊享会员权益</h3>
                     <p className="text-xs text-gray-400 mt-1">升级解锁更多奢华服务</p>
@@ -101,9 +99,8 @@ const VIPPrivilegesModal: React.FC<{ isOpen: boolean; onClose: () => void; curre
                 
                 <div className="p-5 space-y-4">
                     {[
-                        { level: 'black_gold', name: '黑金会员', color: 'text-gold-500', icon: '👑', benefits: ['全场 98 折优惠', '优先发货通道', '专属 1v1 客服管家', '生日专属好礼'] },
-                        { level: 'diamond', name: '钻石会员', color: 'text-blue-400', icon: '💎', benefits: ['全场 99 折优惠', '优先发货通道', '积分 1.5 倍加速'] },
-                        { level: 'platinum', name: '铂金会员', color: 'text-gray-300', icon: '⭐', benefits: ['积分兑换好礼', '新品优先购'] },
+                        { level: 'black_gold', name: '黑金会员', color: 'text-gold-500', icon: '👑', benefits: ['全场 98 折优惠', '优先发货通道', '专属 1v1 客服管家'] },
+                        { level: 'diamond', name: '钻石会员', color: 'text-blue-400', icon: '💎', benefits: ['全场 99 折优惠', '优先发货通道'] },
                     ].map(tier => (
                         <div key={tier.level} className={`p-4 rounded-xl border ${currentLevel === tier.level ? 'bg-gold-500/10 border-gold-500/50' : 'bg-ocean-800 border-ocean-700 opacity-60'}`}>
                             <div className="flex items-center justify-between mb-2">
@@ -124,7 +121,6 @@ const VIPPrivilegesModal: React.FC<{ isOpen: boolean; onClose: () => void; curre
                         </div>
                     ))}
                 </div>
-                
                 <div className="p-4 border-t border-ocean-700">
                     <button onClick={onClose} className="w-full bg-ocean-800 text-gray-400 py-3 rounded-full text-sm font-medium hover:text-white">关闭</button>
                 </div>
@@ -141,54 +137,31 @@ const UserCenter: React.FC<UserCenterProps> = ({
 }) => {
   const [currentView, setCurrentView] = useState<UserView>('main');
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(2);
-  const [isProcessingRecharge, setIsProcessingRecharge] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false); 
   const [showVIPDetails, setShowVIPDetails] = useState(false); 
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [isFlipped, setIsFlipped] = useState(false);
   
-  const [isAddressFormOpen, setIsAddressFormOpen] = useState(false);
-  const [addressForm, setAddressForm] = useState<Partial<Address>>({});
-  const [aiAddressInput, setAiAddressInput] = useState('');
-  const [isParsingAddress, setIsParsingAddress] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [activeOrderTab, setActiveOrderTab] = useState<OrderTab>('all');
 
-  // Tilt Effect & Flip State
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-  const [isFlipped, setIsFlipped] = useState(false);
-  const [qrRefreshTimer, setQrRefreshTimer] = useState(60);
-
-  useEffect(() => {
-      // Simulate QR Code refresh timer
-      const interval = setInterval(() => {
-          setQrRefreshTimer(prev => prev > 0 ? prev - 1 : 60);
-      }, 1000);
-      return () => clearInterval(interval);
-  }, []);
-
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-      if (isFlipped) return; // Disable tilt when flipped to make reading easier
+      if (isFlipped) return;
       const card = e.currentTarget;
       const rect = card.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
-      
-      const rotateX = ((y - centerY) / centerY) * -10; // Max tilt 10deg
+      const rotateX = ((y - centerY) / centerY) * -10; 
       const rotateY = ((x - centerX) / centerX) * 10;
-
       setTilt({ x: rotateX, y: rotateY });
-  };
-
-  const handleMouseLeave = () => {
-      setTilt({ x: 0, y: 0 });
   };
 
   const handleCardClick = () => {
       if (navigator.vibrate) navigator.vibrate(20);
       setIsFlipped(!isFlipped);
-      setTilt({ x: 0, y: 0 }); // Reset tilt
+      setTilt({ x: 0, y: 0 });
   };
 
   const handleSimulateLogin = () => {
@@ -211,126 +184,31 @@ const UserCenter: React.FC<UserCenterProps> = ({
     }, 1000);
   };
 
-  const openAddressForm = (addr?: Address) => {
-      setAddressForm(addr || { name: '', phone: '', province: '', city: '', detail: '', isDefault: false });
-      setAiAddressInput('');
-      setIsAddressFormOpen(true);
-  };
-
-  const handleAIParseAddress = async () => {
-      if (!aiAddressInput.trim()) { showToast('请粘贴地址信息', 'error'); return; }
-      setIsParsingAddress(true);
-      try {
-          const result = await geminiService.parseAddressInfo(aiAddressInput);
-          setAddressForm(prev => ({ ...prev, ...result }));
-          showToast('识别成功！请核对信息', 'success');
-      } catch (e) {
-          showToast('识别失败，请手动填写', 'error');
-      } finally {
-          setIsParsingAddress(false);
-      }
-  };
-
-  const saveAddress = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!addressForm.name || !addressForm.phone || !addressForm.detail) { showToast('请填写完整地址信息', 'error'); return; }
-      const newAddr = { ...addressForm, id: addressForm.id || `addr-${Date.now()}` } as Address;
-      if (addressForm.id) onUpdateAddress(newAddr); else onAddAddress(newAddr);
-      setIsAddressFormOpen(false);
-  };
-
-  const handleRechargeSubmit = () => {
-      const plan = RECHARGE_PLANS.find(p => p.id === selectedPlanId);
-      if (!plan) return;
-      setIsProcessingRecharge(true);
-      setTimeout(() => { 
-          onRecharge(plan.price, plan.bonus); 
-          setIsProcessingRecharge(false); 
-          setShowCelebration(true); 
-      }, 1500);
-  };
-
-  const handleBuyAgain = (order: Order) => {
-      order.items.forEach(item => {
-          const productLike: Product = {
-              id: item.productId,
-              name: item.name,
-              price: item.price,
-              image: item.image,
-              stock: 99,
-              description: '', unit: '', tags: [], category: 'fish'
-          };
-          onAddToCart(productLike);
-      });
-      showToast('商品已全部加入购物袋', 'success');
-  };
-
-  const handleCloseOrderModal = () => setSelectedOrder(null);
-  const handleCancelOrderWrapper = (id: string) => { onCancelOrder(id); handleCloseOrderModal(); };
-  const handleConfirmOrderWrapper = (id: string) => { onConfirmReceipt(id); handleCloseOrderModal(); };
-  const handleBuyAgainWrapper = (order: Order) => { handleBuyAgain(order); handleCloseOrderModal(); };
-
   if (!user) {
     return (
       <div className="h-full w-full bg-ocean-900 relative overflow-hidden flex flex-col items-center justify-center p-6 animate-fade-in-up">
         <button onClick={onBack} className="absolute top-safe-top left-4 p-2 text-gray-400 hover:text-white z-20"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-        <div className="w-20 h-20 rounded-full bg-ocean-800 border border-gold-500/30 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.2)] mb-8">
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.47-3.46 6-7 6s-7.06-2.53-8.5-6Z"/><path d="M18 12v.5"/><path d="M16 17.93a9.77 9.77 0 0 1 0-11.86"/></svg>
+        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gold-600 to-amber-700 flex items-center justify-center shadow-[0_0_40px_rgba(245,158,11,0.3)] mb-8 border-4 border-ocean-800">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.47-3.46 6-7 6s-7.06-2.53-8.5-6Z"/><path d="M18 12v.5"/><path d="M16 17.93a9.77 9.77 0 0 1 0-11.86"/></svg>
         </div>
-        <h2 className="text-3xl font-serif text-white mb-2 tracking-wider">欢迎回来</h2>
-        <button onClick={handleSimulateLogin} disabled={isLoading} className="w-full bg-gradient-to-r from-gold-600 to-gold-500 text-ocean-900 font-bold py-4 rounded-full shadow-lg mt-12">{isLoading ? '登录中...' : '手机号一键登录'}</button>
+        <h2 className="text-3xl font-serif text-white mb-2 tracking-wider">魏来海鲜</h2>
+        <p className="text-gold-500/80 text-sm tracking-[0.2em] mb-12 uppercase font-light">Premium Member Club</p>
+        <button onClick={handleSimulateLogin} disabled={isLoading} className="w-full bg-white text-ocean-900 font-bold py-4 rounded-full shadow-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2">
+            {isLoading ? <svg className="animate-spin h-5 w-5 text-ocean-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> : '手机号一键登录'}
+        </button>
       </div>
     );
   }
 
-  const renderHeader = (title: string, onBackOverride?: () => void, rightAction?: React.ReactNode) => (
-    <div className="relative z-10 pt-safe-top px-4 pb-4 flex items-center justify-between bg-ocean-900 border-b border-ocean-800 flex-shrink-0">
+  const renderHeader = (title: string, onBackOverride?: () => void) => (
+    <div className="relative z-10 pt-safe-top px-4 pb-4 flex items-center justify-between bg-ocean-900 flex-shrink-0">
          <button onClick={onBackOverride || onBack} className="p-2 -ml-2 text-white/80 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-         <h1 className="text-white font-serif tracking-wide">{title}</h1>
-         <div className="w-12 flex justify-end">{rightAction}</div>
+         <h1 className="text-white font-serif tracking-wide text-lg">{title}</h1>
+         <div className="w-10"></div>
     </div>
   );
 
-  const getNextLevelInfo = () => {
-      if (user.level === 'platinum') return { name: '钻石会员', target: 5000, current: user.points, percent: Math.min(100, (user.points/5000)*100) };
-      if (user.level === 'diamond') return { name: '黑金会员', target: 20000, current: user.points, percent: Math.min(100, (user.points/20000)*100) };
-      return { name: '顶级至尊', target: 100000, current: user.points, percent: 100 };
-  };
-  const levelInfo = getNextLevelInfo();
-
-  if (showCelebration) return <RechargeSuccess onComplete={() => { setShowCelebration(false); setCurrentView('main'); }} />;
-
   // --- SUB-VIEWS ---
-
-  if (currentView === 'favorites') {
-      const favProducts = products.filter(p => user.favoriteProductIds?.includes(p.id));
-      return (
-          <div className="h-full w-full bg-ocean-900 flex flex-col">
-              {renderHeader('我的收藏', () => setCurrentView('main'))}
-              <div className="flex-1 overflow-y-auto p-4 bg-ocean-900 pb-[calc(20px+env(safe-area-inset-bottom))]">
-                  {favProducts.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mb-4"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-                          <p>暂无收藏商品</p>
-                      </div>
-                  ) : (
-                      <div className="grid grid-cols-2 gap-4">
-                          {favProducts.map(product => (
-                              <ProductCard 
-                                  key={product.id} 
-                                  product={product} 
-                                  onAddToCart={onAddToCart}
-                                  variant="store"
-                                  onToggleFavorite={onToggleFavoriteProduct}
-                              />
-                          ))}
-                      </div>
-                  )}
-              </div>
-          </div>
-      );
-  }
-
   if (currentView === 'orders') {
       const filteredOrders = orders.filter(o => {
           if (activeOrderTab === 'all') return true;
@@ -341,12 +219,12 @@ const UserCenter: React.FC<UserCenterProps> = ({
           <div className="h-full w-full bg-ocean-900 flex flex-col">
               {renderHeader('我的订单', () => setCurrentView('main'))}
               
-              <div className="bg-ocean-900 px-4 py-2 border-b border-ocean-800 flex gap-6 overflow-x-auto no-scrollbar flex-shrink-0">
+              <div className="bg-ocean-900 px-4 flex gap-6 overflow-x-auto no-scrollbar flex-shrink-0 border-b border-white/5">
                   {(['all', 'pending', 'shipped', 'completed'] as OrderTab[]).map(tab => (
                       <button 
                           key={tab}
                           onClick={() => setActiveOrderTab(tab)}
-                          className={`py-2 text-sm relative transition-colors ${activeOrderTab === tab ? 'text-gold-500 font-bold' : 'text-gray-400'}`}
+                          className={`py-3 text-sm relative transition-colors ${activeOrderTab === tab ? 'text-gold-500 font-bold' : 'text-gray-400'}`}
                       >
                           {tab === 'all' ? '全部' : tab === 'pending' ? '待发货' : tab === 'shipped' ? '待收货' : '已完成'}
                           {activeOrderTab === tab && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-gold-500 rounded-full"></div>}
@@ -357,51 +235,29 @@ const UserCenter: React.FC<UserCenterProps> = ({
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-ocean-900 pb-[calc(20px+env(safe-area-inset-bottom))]">
                   {filteredOrders.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-20 text-gray-500 gap-4">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
                           <p>暂无相关订单</p>
                       </div>
                   ) : (
                       filteredOrders.map(order => (
-                          <div key={order.id} className="bg-ocean-800/50 rounded-xl p-4 shadow-md transition-all active:scale-[0.98] border border-white/5" onClick={() => setSelectedOrder(order)}>
-                              <div className="flex justify-between items-center mb-3 pb-3 border-b border-white/5">
-                                  <span className="text-xs text-gray-400 font-mono tracking-tight">{order.date.split(' ')[0]}</span>
+                          <div key={order.id} className="bg-ocean-800/40 rounded-xl p-4 border border-white/5" onClick={() => setSelectedOrder(order)}>
+                              <div className="flex justify-between items-center mb-3">
+                                  <span className="text-xs text-gray-400 font-mono tracking-tight">{order.date}</span>
                                   <span className={`text-xs px-2 py-0.5 rounded font-medium ${order.status === 'completed' ? 'text-green-400' : order.status === 'pending' ? 'text-gold-500' : 'text-blue-400'}`}>
                                       {order.status === 'pending' ? '待发货' : order.status === 'shipped' ? '运输中' : order.status === 'completed' ? '已完成' : '已取消'}
                                   </span>
                               </div>
-                              
                               <div className="flex gap-4">
                                   <div className="relative">
-                                      <img src={order.items[0].image} className="w-20 h-20 rounded-lg object-cover bg-ocean-900" />
-                                      {order.items.length > 1 && (
-                                          <div className="absolute bottom-0 right-0 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-tl-lg font-medium">+{order.items.length - 1}</div>
-                                      )}
+                                      <img src={order.items[0].image} className="w-16 h-16 rounded-lg object-cover bg-ocean-900" />
+                                      {order.items.length > 1 && <div className="absolute bottom-0 right-0 bg-black/60 text-white text-[9px] px-1 rounded-tl-md">+{order.items.length - 1}</div>}
                                   </div>
-                                  <div className="flex-1 flex flex-col justify-between py-1">
-                                      <div>
-                                          <div className="text-white text-sm font-medium line-clamp-1">{order.items[0].name}</div>
-                                          <div className="text-gray-500 text-xs mt-1 line-clamp-1">
-                                              {order.items.map(i => i.variantName || '标准规格').join(' / ')}
-                                          </div>
-                                      </div>
+                                  <div className="flex-1 flex flex-col justify-between py-0.5">
+                                      <div className="text-white text-sm font-medium line-clamp-1">{order.items[0].name}</div>
                                       <div className="flex justify-between items-end">
                                           <span className="text-gray-400 text-xs">共 {order.items.reduce((a,b)=>a+b.quantity,0)} 件</span>
                                           <div className="text-xs text-gray-300">实付 <span className="text-gold-500 font-bold text-base font-serif">¥{order.total}</span></div>
                                       </div>
                                   </div>
-                              </div>
-
-                              <div className="flex justify-end gap-2 mt-4">
-                                  {order.status === 'pending' && <button onClick={(e) => { e.stopPropagation(); onCancelOrder(order.id); }} className="px-3 py-1.5 rounded-full border border-white/10 text-gray-400 text-xs hover:text-white hover:border-white/30 transition-colors">取消</button>}
-                                  {order.status === 'shipped' && (
-                                      <>
-                                        <button onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }} className="px-4 py-1.5 rounded-full border border-gold-500/30 text-gold-500 text-xs font-medium hover:bg-gold-500/10">
-                                            查看物流
-                                        </button>
-                                        <button onClick={(e) => { e.stopPropagation(); onConfirmReceipt(order.id); }} className="px-4 py-1.5 rounded-full bg-ocean-700 text-white font-medium text-xs hover:bg-ocean-600">确认收货</button>
-                                      </>
-                                  )}
-                                  {(order.status === 'completed' || order.status === 'cancelled') && <button onClick={(e) => { e.stopPropagation(); handleBuyAgain(order); }} className="px-4 py-1.5 rounded-full border border-gold-600 text-gold-500 text-xs font-medium hover:bg-gold-600/10">再来一单</button>}
                               </div>
                           </div>
                       ))
@@ -410,10 +266,10 @@ const UserCenter: React.FC<UserCenterProps> = ({
               <OrderDetailModal 
                   isOpen={!!selectedOrder} 
                   order={selectedOrder} 
-                  onClose={handleCloseOrderModal} 
-                  onCancel={handleCancelOrderWrapper} 
-                  onConfirm={handleConfirmOrderWrapper} 
-                  onBuyAgain={handleBuyAgainWrapper} 
+                  onClose={() => setSelectedOrder(null)} 
+                  onCancel={(id) => { onCancelOrder(id); setSelectedOrder(null); }} 
+                  onConfirm={(id) => { onConfirmReceipt(id); setSelectedOrder(null); }} 
+                  onBuyAgain={(o) => { onAddToCart(products.find(p=>p.id===o.items[0].productId)!); setSelectedOrder(null); }} 
                   onContactSupport={onContactSupport}
                   onAddReview={onAddReview}
               />
@@ -421,7 +277,7 @@ const UserCenter: React.FC<UserCenterProps> = ({
       );
   }
 
-  // --- Main Dashboard with Shine Effect ---
+  // --- Main Dashboard ---
   return (
     <div className="h-full w-full bg-ocean-900 flex flex-col overflow-hidden relative">
       <style>{`
@@ -430,21 +286,11 @@ const UserCenter: React.FC<UserCenterProps> = ({
             50% { transform: translateX(150%) skewX(-15deg); }
             100% { transform: translateX(150%) skewX(-15deg); }
         }
-        .animate-shine {
-            animation: shine 4s infinite;
-        }
-        .perspective-1000 {
-            perspective: 1000px;
-        }
-        .transform-style-3d {
-            transform-style: preserve-3d;
-        }
-        .backface-hidden {
-            backface-visibility: hidden;
-        }
-        .rotate-y-180 {
-            transform: rotateY(180deg);
-        }
+        .animate-shine { animation: shine 4s infinite; }
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
       `}</style>
       
       <div className="absolute top-0 w-full h-64 bg-gradient-to-b from-ocean-800 to-ocean-900 z-0"></div>
@@ -455,96 +301,69 @@ const UserCenter: React.FC<UserCenterProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-[calc(20px+env(safe-area-inset-bottom))] relative z-10 no-scrollbar">
-          {/* Black Gold Card with Flip Interaction */}
+          {/* Black Gold Card */}
           <div className="perspective-1000 w-full aspect-[1.8] mb-6 relative group cursor-pointer" onClick={handleCardClick}>
               <div 
                 className={`w-full h-full relative transform-style-3d transition-transform duration-700 ease-out shadow-2xl rounded-2xl ${isFlipped ? 'rotate-y-180' : ''}`}
                 style={!isFlipped ? { transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)` } : {}}
                 onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
               >
-                  {/* FRONT FACE */}
-                  <div className="absolute inset-0 w-full h-full backface-hidden rounded-2xl p-6 flex flex-col justify-between overflow-hidden border border-gold-500/30 shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
-                       style={{ background: 'linear-gradient(135deg, #1c1c1c 0%, #0d0d0d 100%)' }}>
+                  {/* FRONT */}
+                  <div className="absolute inset-0 w-full h-full backface-hidden rounded-2xl p-6 flex flex-col justify-between overflow-hidden border border-gold-500/20 shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+                       style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #000 100%)' }}>
                        
-                       {/* Shine Layer */}
-                       <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden mix-blend-overlay opacity-30">
-                           <div className="absolute top-0 left-0 w-2/3 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shine blur-xl"></div>
-                       </div>
+                       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+                       <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shine pointer-events-none"></div>
                        
-                       <div className="flex items-start justify-between relative transform translate-z-10">
+                       <div className="flex items-start justify-between relative z-10">
                            <div className="flex items-center gap-3">
-                               <div className="w-12 h-12 rounded-full border-2 border-gold-500/50 p-0.5 relative shadow-lg"><img src={user.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" /></div>
-                               <div><h3 className="text-gold-100 font-bold text-lg drop-shadow-md font-serif tracking-wide">{user.name}</h3><div className="flex items-center gap-1 bg-gold-500/10 px-2 py-0.5 rounded text-[10px] w-fit border border-gold-500/20"><span className="text-gold-400">♦</span><span className="text-gold-400 font-serif capitalize">{user.level === 'black_gold' ? '黑金' : user.level === 'diamond' ? '钻石' : '铂金'}会员</span></div></div>
+                               <img src={user.avatar} className="w-10 h-10 rounded-full border border-gold-500/50" />
+                               <div><h3 className="text-gold-100 font-bold text-lg font-serif">{user.name}</h3><div className="text-[10px] text-gold-500 border border-gold-500/30 px-1.5 rounded w-fit">黑金会员</div></div>
                            </div>
-                           <button onClick={(e) => { e.stopPropagation(); onCheckIn(); }} disabled={user.lastCheckInDate === new Date().toISOString().split('T')[0]} className={`flex items-center gap-1 px-3 py-1.5 rounded-full backdrop-blur-md border transition-all active:scale-95 shadow-lg ${user.lastCheckInDate === new Date().toISOString().split('T')[0] ? 'bg-white/5 border-white/10 text-gray-500' : 'bg-gold-500 text-ocean-900 border-gold-500 font-bold'}`}><span className="text-xs">{user.lastCheckInDate === new Date().toISOString().split('T')[0] ? '已签到' : '签到'}</span></button>
+                           <img src={`https://api.iconify.design/lucide:gem.svg?color=%23f59e0b`} className="w-6 h-6 opacity-80" />
                        </div>
 
-                       <div className="mt-4 mb-1 relative z-10">
-                           <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                               <span onClick={(e) => { e.stopPropagation(); setCurrentView('points_mall'); }} className="underline decoration-dashed underline-offset-4 cursor-pointer hover:text-gold-400">积分 {user.points} &gt;</span>
-                               <span>升级{levelInfo.name}还需 {Math.max(0, levelInfo.target - levelInfo.current)}</span>
+                       <div className="relative z-10 flex justify-between items-end">
+                           <div>
+                               <p className="text-gray-500 text-[10px] mb-1">余额 Balance</p>
+                               <p className="text-2xl text-gold-400 font-serif font-bold">¥ {user.balance.toLocaleString()}</p>
                            </div>
-                           <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                               <div className="h-full bg-gradient-to-r from-gold-600 to-gold-400 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(245,158,11,0.5)]" style={{ width: `${levelInfo.percent}%` }}></div>
-                           </div>
-                       </div>
-
-                       <div className="flex items-end justify-between relative mt-2 z-10">
-                           <div><p className="text-gray-500 text-[10px] mb-0.5">账户余额</p><div className="flex items-baseline gap-2"><p className="text-3xl text-gold-400 font-serif tracking-tight drop-shadow-sm font-bold">{user.balance.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</p><button onClick={(e) => {e.stopPropagation(); setCurrentView('recharge');}} className="text-gold-500 text-[10px] border border-gold-500/30 px-2 py-0.5 rounded-full hover:bg-gold-500/10 transition-colors">充值</button></div></div>
-                           <div className="text-[10px] text-gold-500/60 flex items-center gap-0.5 cursor-pointer hover:text-gold-500" onClick={(e) => { e.stopPropagation(); setShowVIPDetails(true); }}>权益详情 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg></div>
+                           <button onClick={(e) => { e.stopPropagation(); onCheckIn(); }} className="bg-gold-500 text-ocean-900 text-xs font-bold px-4 py-1.5 rounded-full hover:bg-gold-400 transition-colors shadow-lg">签到</button>
                        </div>
                   </div>
 
-                  {/* BACK FACE */}
-                  <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-2xl p-6 flex flex-col items-center justify-center border border-gold-500/30 shadow-2xl"
-                       style={{ background: 'linear-gradient(135deg, #111 0%, #222 100%)' }}>
-                       
-                       <h3 className="text-gold-500 font-serif font-bold text-lg mb-4 tracking-wide">会员身份码</h3>
-                       
-                       <div className="bg-white p-2 rounded-lg relative overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-                           <div className="w-24 h-24 relative">
-                                <img src={`https://api.iconify.design/ion:qr-code-outline.svg?color=000000`} className="w-full h-full opacity-90" />
-                                {/* Scanning Line Effect */}
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gold-500/50 shadow-[0_0_10px_#f59e0b] animate-scan"></div>
-                           </div>
+                  {/* BACK */}
+                  <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-2xl p-6 flex flex-col items-center justify-center border border-gold-500/20 bg-black">
+                       <h3 className="text-gold-500 font-serif font-bold mb-4">会员身份码</h3>
+                       <div className="bg-white p-2 rounded relative overflow-hidden">
+                           <img src={`https://api.iconify.design/ion:qr-code-outline.svg?color=000000`} className="w-24 h-24 opacity-90" />
+                           <div className="absolute top-0 left-0 w-full h-1 bg-red-500/50 animate-scan"></div>
                        </div>
-                       <style>{`
-                           @keyframes scan {
-                               0% { top: 0; opacity: 0; }
-                               20% { opacity: 1; }
-                               80% { opacity: 1; }
-                               100% { top: 100%; opacity: 0; }
-                           }
-                           .animate-scan { animation: scan 2s linear infinite; }
-                       `}</style>
-
-                       <p className="text-gray-400 text-xs mt-3 font-mono">NO. {user.id.toUpperCase()}</p>
-                       <p className="text-[10px] text-gray-500 mt-1 flex items-center gap-1">
-                           <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                           每 {qrRefreshTimer} 秒刷新
-                       </p>
+                       <p className="text-gray-500 text-xs mt-3 font-mono">NO. {user.id.toUpperCase()}</p>
                   </div>
               </div>
           </div>
 
-          <div className="bg-ocean-800 rounded-2xl p-5 mb-6 border border-white/5 shadow-lg flex justify-between divide-x divide-white/5">
-                <button className="flex-1 flex flex-col items-center gap-1.5" onClick={() => setCurrentView('orders')}><span className="text-xl font-bold text-white font-serif">{orders.filter(o => o.status === 'pending').length}</span><span className="text-xs text-gray-400">待发货</span></button>
-                <button className="flex-1 flex flex-col items-center gap-1.5" onClick={() => setCurrentView('coupons')}><span className="text-xl font-bold text-white font-serif">{user.claimedCouponIds?.length || 0}</span><span className="text-xs text-gray-400">优惠券</span></button>
-                <button className="flex-1 flex flex-col items-center gap-1.5" onClick={() => setCurrentView('favorites')}><span className="text-xl font-bold text-white font-serif">{user.favoriteProductIds?.length || 0}</span><span className="text-xs text-gray-400">收藏</span></button>
+          {/* Stats Bar */}
+          <div className="bg-ocean-800/50 rounded-xl p-4 mb-6 border border-white/5 flex justify-between">
+                <button className="flex-1 flex flex-col items-center gap-1" onClick={() => setCurrentView('orders')}><span className="text-lg font-bold text-white font-serif">{orders.filter(o => o.status === 'pending').length}</span><span className="text-xs text-gray-400">待发货</span></button>
+                <div className="w-[1px] bg-white/5"></div>
+                <button className="flex-1 flex flex-col items-center gap-1" onClick={() => setCurrentView('coupons')}><span className="text-lg font-bold text-white font-serif">{user.claimedCouponIds?.length || 0}</span><span className="text-xs text-gray-400">优惠券</span></button>
+                <div className="w-[1px] bg-white/5"></div>
+                <button className="flex-1 flex flex-col items-center gap-1" onClick={() => setCurrentView('favorites')}><span className="text-lg font-bold text-white font-serif">{user.favoriteProductIds?.length || 0}</span><span className="text-xs text-gray-400">收藏</span></button>
           </div>
 
-          <div className="space-y-3">
+          {/* Menu List */}
+          <div className="space-y-2">
               {[
                   { label: '我的订单', icon: '📦', action: () => setCurrentView('orders') },
                   { label: '收货地址', icon: '📍', action: () => setCurrentView('addresses') },
-                  { label: '鉴赏笔记', icon: '📝', action: () => setCurrentView('my_reviews') },
                   { label: '联系管家', icon: '💬', action: onContactSupport }
               ].map((item, i) => (
-                  <button key={i} onClick={item.action} className="w-full flex items-center justify-between p-4 bg-ocean-800 rounded-xl hover:bg-ocean-700/80 transition-colors border border-white/5 shadow-sm active:scale-[0.99]">
+                  <button key={i} onClick={item.action} className="w-full flex items-center justify-between p-4 bg-ocean-800/40 rounded-xl hover:bg-ocean-800/60 transition-colors border border-white/5">
                       <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-lg">{item.icon}</div>
-                          <span className="text-sm text-white font-medium">{item.label}</span>
+                          <span className="text-lg">{item.icon}</span>
+                          <span className="text-sm text-white">{item.label}</span>
                       </div>
                       <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"></path></svg>
                   </button>
@@ -552,7 +371,6 @@ const UserCenter: React.FC<UserCenterProps> = ({
           </div>
       </div>
       
-      {/* Modals */}
       <VIPPrivilegesModal isOpen={showVIPDetails} onClose={() => setShowVIPDetails(false)} currentLevel={user.level} />
     </div>
   );
