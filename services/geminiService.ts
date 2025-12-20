@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { Product, RecommendationCard } from "../types";
 
 export class GeminiService {
@@ -41,15 +41,17 @@ ${catalogStr}
     try {
       // Create fresh AI instance for each call as per guidelines
       const ai = this.createAI();
-      const response = await ai.models.generateContent({
+      // Fix: Use GenerateContentResponse for proper typing and text extraction
+      const response: GenerateContentResponse = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: [{ role: 'user', parts: [{ text: message }] }],
+        contents: message,
         config: {
           systemInstruction: this.getSystemInstruction(catalog),
           responseMimeType: "application/json"
         }
       });
 
+      // Use response.text directly as per guidelines
       const content = response.text || "{}";
       const card = JSON.parse(content) as RecommendationCard;
 
@@ -69,11 +71,13 @@ ${catalogStr}
       const ai = this.createAI();
       const prompt = `你是一个购买了“${productName}”的海鲜爱好者。请根据这些标签写一段简短的评价：${tags.join('，')}。语气应该是：${tone}。要求表达出食材的极鲜品质和魏来海鲜的高端服务感。`;
       
-      const response = await ai.models.generateContent({
+      // Fix: Use GenerateContentResponse for proper typing and text extraction
+      const response: GenerateContentResponse = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt
       });
 
+      // Use response.text directly as per guidelines
       return response.text || "非常棒的海鲜，品质超乎想象，包装和服务都很高级。";
     } catch (e) {
       console.error("Gemini Review Error:", e);

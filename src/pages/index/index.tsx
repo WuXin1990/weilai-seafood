@@ -1,38 +1,45 @@
-
-import { View, Text, Image, Button } from '@tarojs/components'
-import { useLoad } from '@tarojs/taro'
-import Taro from '@tarojs/taro'
+import React from 'react'
+import { View as TaroView, Text as TaroText, Image as TaroImage, Button as TaroButton } from '@tarojs/components'
+import Taro, { useLoad } from '@tarojs/taro'
 import './index.scss'
+
+const View = TaroView as any
+const Text = TaroText as any
+const Image = TaroImage as any
+const Button = TaroButton as any
 
 export default function Index() {
 
   useLoad(() => {
-    console.log('Page loaded.')
+    Taro.vibrateShort({ type: 'light' })
   })
 
   const handleStartChat = () => {
     Taro.vibrateShort({ type: 'medium' })
-    Taro.showToast({ title: '正在连接私人管家...', icon: 'none' })
-  }
-
-  const goStore = () => {
-    Taro.navigateTo({ url: '/pages/store/index' })
+    Taro.showModal({
+      title: '魏来海鲜管家',
+      content: '尊客，正在为您连线直播间 1对1 专属管家。',
+      confirmColor: '#C5A059',
+      success: (res) => {
+        if (res.confirm) {
+          Taro.showToast({ title: '正在呼叫管家', icon: 'loading' })
+        }
+      }
+    })
   }
 
   return (
     <View className='container'>
-      {/* 顶部直播状态 */}
-      <View className='header' style={{ paddingTop: Taro.getSystemInfoSync().statusBarHeight + 'px' }}>
+      <View className='header' style={{ paddingTop: (Taro.getSystemInfoSync().statusBarHeight || 0) + 'px' }}>
         <View className='live-tag'>
           <View className='dot'></View>
-          <Text className='live-text'>LIVE · 正在直播</Text>
+          <Text className='live-text'>LIVE · 同步直播</Text>
         </View>
         <View className='user-icon'>
-           <Text className='icon-text'>VIP</Text>
+           <Text className='icon-text'>WL</Text>
         </View>
       </View>
 
-      {/* 品牌核心区 */}
       <View className='hero-section'>
         <View className='logo-wrap'>
           <Image 
@@ -44,30 +51,29 @@ export default function Index() {
         <View className='brand-content'>
           <View className='title-row'>
             <Text className='title-main'>魏来</Text>
-            <Text className='title-sub'>海鲜</Text>
+            <Text className='title-sub'>Seafood</Text>
           </View>
-          <Text className='slogan'>从 直 播 间 到 您 的 舌 尖</Text>
-          <Text className='tagline'>深 海 极 鲜 · 私 域 专 供</Text>
+          <Text className='slogan'>Beyond the Ocean, Above the Rest</Text>
+          <Text className='tagline'>直 播 间 官 方 选 品 店</Text>
         </View>
       </View>
 
-      {/* 底部交互卡片 */}
       <View className='footer-card'>
         <View className='card-header'>
-          <Text className='card-title'>粉丝专席</Text>
-          <Text className='card-stat'>今日已配货 128 份</Text>
+          <Text className='card-title'>直播间家人们专属</Text>
+          <Text className='card-stat'>在线管家: 2名</Text>
         </View>
 
         <Button className='ai-btn' onClick={handleStartChat}>
-          <Text className='btn-text'>咨询直播间专属管家</Text>
+          <Text className='btn-text'>1对1 私人管家咨询</Text>
         </Button>
 
         <View className='btn-group'>
-          <View className='sub-btn' onClick={goStore}>
-            <Text className='sub-btn-text'>直达鱼市</Text>
+          <View className='sub-btn'>
+            <Text className='sub-btn-text'>逛鱼市</Text>
           </View>
           <View className='sub-btn'>
-            <Text className='sub-btn-text'>食味日志</Text>
+            <Text className='sub-btn-text'>品鉴录</Text>
           </View>
         </View>
       </View>
