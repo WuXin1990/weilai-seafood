@@ -2,7 +2,7 @@
 import { GoogleGenAI } from "@google/genai";
 
 export const config = {
-  runtime: 'edge', // Use Edge runtime for faster streaming
+  runtime: 'edge',
 };
 
 export default async function handler(req) {
@@ -13,23 +13,16 @@ export default async function handler(req) {
   try {
     const { message, image, history, systemInstruction } = await req.json();
     
-    // Initialize Gemini on the server side (Vercel US Server)
-    // API_KEY is safe here and network is accessible
+    // 初始化时使用具名参数
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
-    // Construct the full history for the model
-    // Note: We need to convert the simplified format back to Gemini format if needed,
-    // but here we assume we pass compatible content structures or reconstruct them.
     const contents = [];
-    
     if (history && Array.isArray(history)) {
         contents.push(...history);
     }
 
-    // Current User Message
     const userParts = [];
     if (image) {
-        // Handle Base64 image
         const match = image.match(/^data:(.+);base64,(.+)$/);
         if (match) {
             userParts.push({
@@ -43,21 +36,26 @@ export default async function handler(req) {
     if (message) {
         userParts.push({ text: message });
     }
-    contents.push({ role: 'user', parts: userParts });
+    
+    // 只有在有用户输入时才添加
+    if (userParts.length > 0) {
+      contents.push({ role: 'user', parts: userParts });
+    }
 
-    const model = 'gemini-2.5-flash';
+    // 使用系统推荐的最新模型
+    const modelName = 'gemini-3-flash-preview';
 
-    // Call Gemini API with Streaming
     const responseStream = await ai.models.generateContentStream({
-      model: model,
+      model: modelName,
       contents: contents,
       config: {
         systemInstruction: systemInstruction,
-        temperature: 1.3,
+        temperature: 0.8, // 降低随机性，保证推荐的专业性
+        topP: 0.95,
+        topK: 40,
       }
     });
 
-    // Create a ReadableStream to stream data back to the client
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
@@ -70,7 +68,6 @@ export default async function handler(req) {
           }
         } catch (e) {
           console.error("Stream Error", e);
-          controller.enqueue(encoder.encode("\n[连接中断]"));
         } finally {
           controller.close();
         }

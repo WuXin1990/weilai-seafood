@@ -1,5 +1,7 @@
 {
   "name": "魏来海鲜 | Wei Lai Seafood",
   "description": "魏来海鲜高端私域店。利用AI为您提供个性化的顶级海鲜推荐。",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }

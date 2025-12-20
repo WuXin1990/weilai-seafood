@@ -1,0 +1,8 @@
+
+{
+  "navigationBarTitleText": "确认下单",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "ai-recommend-card": "../../components/ai-recommend-card/ai-recommend-card"
+  }
+}

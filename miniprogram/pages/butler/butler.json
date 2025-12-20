@@ -1,0 +1,7 @@
+
+{
+  "navigationBarTitleText": "魏来海鲜管家",
+  "usingComponents": {
+    "ai-recommend-card": "../../components/ai-recommend-card/ai-recommend-card"
+  }
+}

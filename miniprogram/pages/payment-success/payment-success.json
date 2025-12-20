@@ -1,0 +1,10 @@
+
+{
+  "navigationBarTitleText": "支付结果",
+  "navigationStyle": "custom",
+  "backgroundColor": "#070A11",
+  "navigationBarTextStyle": "white",
+  "usingComponents": {
+    "ai-recommend-card": "../../components/ai-recommend-card/ai-recommend-card"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/store/store",
+    "pages/admin/dashboard"
+  ],
+  "window": {
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#0A0E17",
+    "navigationBarTitleText": "魏来海鲜",
+    "navigationBarTextStyle": "white",
+    "navigationStyle": "custom",
+    "backgroundColor": "#0A0E17"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}
