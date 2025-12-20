@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   AppState, Product, Message, MessageRole, DecisionState, RecommendationCard
 } from './types';
@@ -15,20 +16,28 @@ import ToastContainer, { ToastMessage } from './components/Toast';
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(AppState.WELCOME);
-  const [conversationState, setConversationState] = useState<DecisionState>(DecisionState.INIT);
   const [products] = useState<Product[]>(SEAFOOD_CATALOG);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingChat, setIsLoadingChat] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [currentRecommendation, setCurrentRecommendation] = useState<RecommendationCard | null>(null);
 
-  const showToast = (text: string, type: 'success' | 'error' | 'info' = 'info') => {
+  const triggerVibrate = (type: 'light' | 'medium' | 'success' = 'light') => {
+    // 模拟 Taro/Wechat 的震动 API
+    if (window.navigator.vibrate) {
+      const patterns = { light: 10, medium: 30, success: [20, 50, 20] };
+      window.navigator.vibrate(patterns[type]);
+    }
+  };
+
+  const showToast = useCallback((text: string, type: 'success' | 'error' | 'info' = 'info') => {
     const id = Date.now().toString();
     setToasts(prev => [...prev, { id, text, type }]);
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
-  };
+  }, []);
 
   const handleStartChat = () => {
+    triggerVibrate('medium');
     setAppState(AppState.CHAT);
     if (messages.length === 0) {
       const greeting = geminiService.startChat();
@@ -42,102 +51,109 @@ const App: React.FC = () => {
     setIsLoadingChat(true);
 
     try {
-      const { text: responseText, card } = await geminiService.sendMessage(text, products);
-
+      const result = await geminiService.sendMessage(text, products);
+      triggerVibrate('light');
       setMessages(prev => [...prev, { 
         id: Date.now().toString(), 
         role: MessageRole.MODEL, 
-        text: responseText,
-        recommendationCard: card
+        text: result.text,
+        recommendationCard: result.card
       }]);
-
     } catch (error) {
-      showToast("魏来管家信号微弱，请重试", 'error');
+      showToast("管家正在连线深海信号，请稍后再试", 'error');
     } finally {
       setIsLoadingChat(false);
     }
   };
 
-  const handleConfirmOrder = (card: RecommendationCard) => {
-    setCurrentRecommendation(card);
-    setAppState(AppState.CONFIRMATION);
-  };
-
-  const handlePay = () => {
-    setAppState(AppState.PAYMENT);
-  };
-
-  const handlePaymentSuccess = () => {
-    setAppState(AppState.SUCCESS);
-    showToast("交易成功，魏来为您备货", "success");
+  const pageVariants = {
+    initial: { opacity: 0, scale: 0.98 },
+    animate: { opacity: 1, scale: 1 },
+    exit: { opacity: 0, scale: 1.02 }
   };
 
   return (
-    <div className="h-full w-full bg-ocean-950 text-white overflow-hidden relative font-sans">
+    <div className="h-full w-full bg-ocean-950 text-white overflow-hidden relative font-sans select-none">
       <ToastContainer toasts={toasts} onDismiss={(id) => setToasts(t => t.filter(x => x.id !== id))} />
 
-      {appState === AppState.WELCOME && (
-        <WelcomeScreen
-          onStartChat={handleStartChat}
-          onEnterStore={() => setAppState(AppState.STORE)}
-          onEnterDiscovery={() => showToast("生活美学期刊筹备中", "info")}
-          onEnterAdmin={() => showToast("店长管理端请在 PC 端登录", "info")}
-          onOpenProfile={() => showToast("会员中心升级中", "info")}
-          isLoggedIn={false}
-        />
-      )}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={appState}
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="h-full w-full"
+        >
+          {appState === AppState.WELCOME && (
+            <WelcomeScreen
+              onStartChat={handleStartChat}
+              onEnterStore={() => { triggerVibrate(); setAppState(AppState.STORE); }}
+              onEnterDiscovery={() => showToast("极鲜日志：正在加载深海故事...", "info")}
+              onOpenProfile={() => showToast("正在调取贵宾权益...", "info")}
+            />
+          )}
 
-      {appState === AppState.STORE && (
-        <Storefront 
-            products={products}
-            onAddToCart={(p) => showToast(`已将 ${p.name} 加入购物袋`, "success")}
-            onBack={() => setAppState(AppState.WELCOME)}
-            cartCount={0}
-            onOpenCart={() => showToast("购物袋明细展示中", "info")}
-            onOpenProfile={() => {}}
-            user={null}
-            onProductClick={(p) => showToast(`正在加载 ${p.name} 详情`, "info")}
-            cart={[]}
-        />
-      )}
+          {appState === AppState.STORE && (
+            <Storefront 
+                products={products}
+                onAddToCart={(p) => { triggerVibrate('light'); showToast(`已将 ${p.name} 放入购物袋`, "success"); }}
+                onBack={() => setAppState(AppState.WELCOME)}
+                cartCount={0}
+                onOpenCart={() => showToast("购物袋正在备货中", "info")}
+                onOpenProfile={() => {}}
+                user={null}
+                onProductClick={(p) => showToast(`正在获取 ${p.name} 的产地实拍`, "info")}
+                cart={[]}
+            />
+          )}
 
-      {appState === AppState.CHAT && (
-        <ChatInterface
-          messages={messages}
-          isLoading={isLoadingChat}
-          onSendMessage={handleSendMessage}
-          productCatalog={products}
-          onBack={() => setAppState(AppState.WELCOME)}
-          onConfirmOrder={handleConfirmOrder}
-          conversationState={conversationState}
-        />
-      )}
+          {appState === AppState.CHAT && (
+            <ChatInterface
+              messages={messages}
+              isLoading={isLoadingChat}
+              onSendMessage={handleSendMessage}
+              productCatalog={products}
+              onBack={() => setAppState(AppState.WELCOME)}
+              onConfirmOrder={(card) => {
+                triggerVibrate('success');
+                setCurrentRecommendation(card);
+                setAppState(AppState.CONFIRMATION);
+              }}
+              conversationState={DecisionState.INIT}
+            />
+          )}
 
-      {appState === AppState.CONFIRMATION && currentRecommendation && (
-          <OrderConfirmation 
-            card={currentRecommendation}
-            onBack={() => setAppState(AppState.CHAT)}
-            onPay={handlePay}
-          />
-      )}
+          {appState === AppState.CONFIRMATION && currentRecommendation && (
+              <OrderConfirmation 
+                card={currentRecommendation}
+                onBack={() => setAppState(AppState.CHAT)}
+                onPay={() => { triggerVibrate('medium'); setAppState(AppState.PAYMENT); }}
+              />
+          )}
 
-      {appState === AppState.PAYMENT && currentRecommendation && (
-          <PaymentScreen 
-            totalPrice={currentRecommendation.totalPrice}
-            onSuccess={handlePaymentSuccess}
-          />
-      )}
+          {appState === AppState.PAYMENT && currentRecommendation && (
+              <PaymentScreen 
+                totalPrice={currentRecommendation.totalPrice}
+                onSuccess={() => {
+                  triggerVibrate('success');
+                  setAppState(AppState.SUCCESS);
+                }}
+              />
+          )}
 
-      {appState === AppState.SUCCESS && (
-          <SuccessScreen 
-            onHome={() => {
-                setAppState(AppState.WELCOME);
-                setMessages([]);
-                setConversationState(DecisionState.INIT);
-            }}
-            onContact={() => showToast("正在为您连接黑金管家...", "info")}
-          />
-      )}
+          {appState === AppState.SUCCESS && (
+              <SuccessScreen 
+                onHome={() => {
+                    setAppState(AppState.WELCOME);
+                    setMessages([]);
+                }}
+                onContact={() => showToast("黑金管家已收到指令", "info")}
+              />
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 };

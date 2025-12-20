@@ -3,117 +3,82 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Product, RecommendationCard } from "../types";
 
 export class GeminiService {
-  private chatHistory: { role: 'user' | 'model', parts: { text: string }[] }[] = [];
+  private chatHistory: any[] = [];
+  
+  // Create a new instance right before each call as per guidelines
+  private createAI() {
+    return new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+  }
 
   private getSystemInstruction(catalog: Product[]) {
     const catalogStr = catalog.map(p => `名称:${p.name},单价:${p.price},描述:${p.description},单位:${p.unit}`).join('\n');
     
-    return `你是电商选品 AI，只负责输出推荐结果。
-你只能输出 JSON。
-不允许输出任何解释、文字、代码块标记。
-不允许多字段、不允许少字段、不允许改字段名。
-如果无法判断，也必须按格式输出。
+    return `你现在是“魏来海鲜”的高级选品官。
+你的任务是根据用户的需求（场景、人数、预算），从下方的商品目录中挑选最合适的组合。
 
-JSON 格式如下：
+商品目录：
+${catalogStr}
+
+必须以 JSON 格式回复，严禁 any 多余文字：
 {
-  "decision": "方案名称（纯中文，如：极鲜入门品鉴方案）",
-  "reason": "管家的专业建议。如果用户预算过低（如300元），请礼貌指出魏来海鲜单品888元起，并建议作为定金或推荐单份海胆尝试，语气要高端、专业、果断。",
-  "items": [
-    {
-      "name": "商品名称",
-      "spec": "规格描述",
-      "quantity": 数量,
-      "price": 单价
-    }
-  ],
-  "totalPrice": 总金额,
+  "decision": "方案名称（如：至尊龙虾宴）",
+  "reason": "推荐理由（语气高端专业）",
+  "items": [{"name": "商品名", "spec": "规格", "quantity": 数量, "price": 单价}],
+  "totalPrice": 总计金额,
   "ctaText": "按钮文案"
-}
-
-当前可供选择的商品名录：
-${catalogStr}`;
+}`;
   }
 
   startChat(): string {
     this.chatHistory = [];
-    return "尊客，欢迎空降魏来海鲜。寻味万顷碧波，我是您的私人管家。请问您今日用餐的场景、人数及预算是？";
+    return "尊客，欢迎从直播间空降魏来海鲜。我是您的私人管家，已为您锁定了今日最鲜活的几批货。请问您今日是为哪种场景寻觅极鲜？";
   }
 
   async sendMessage(
     message: string, 
     catalog: Product[]
   ): Promise<{ text: string, card?: RecommendationCard }> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
-    const contents = [
-      ...this.chatHistory,
-      { role: 'user' as const, parts: [{ text: message }] }
-    ];
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: contents,
-      config: {
-        systemInstruction: this.getSystemInstruction(catalog),
-        temperature: 0.1,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            decision: { type: Type.STRING },
-            reason: { type: Type.STRING },
-            items: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  name: { type: Type.STRING },
-                  spec: { type: Type.STRING },
-                  quantity: { type: Type.NUMBER },
-                  price: { type: Type.NUMBER }
-                },
-                required: ["name", "spec", "quantity", "price"]
-              }
-            },
-            totalPrice: { type: Type.NUMBER },
-            ctaText: { type: Type.STRING }
-          },
-          required: ["decision", "reason", "items", "totalPrice", "ctaText"]
-        }
-      }
-    });
-
     try {
-      const card = JSON.parse(response.text || '{}') as RecommendationCard;
-      this.chatHistory.push({ role: 'user', parts: [{ text: message }] });
-      this.chatHistory.push({ role: 'model', parts: [{ text: response.text }] });
+      // Create fresh AI instance for each call as per guidelines
+      const ai = this.createAI();
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: [{ role: 'user', parts: [{ text: message }] }],
+        config: {
+          systemInstruction: this.getSystemInstruction(catalog),
+          responseMimeType: "application/json"
+        }
+      });
 
-      return { 
-        text: card.reason, 
+      const content = response.text || "{}";
+      const card = JSON.parse(content) as RecommendationCard;
+
+      return {
+        text: card.reason || "已为您备好最佳方案。",
         card: card
       };
     } catch (e) {
-      console.error("Parse Error:", e);
-      return { text: "管家正在全力排布方案，请您再次示意。" };
+      console.error("Gemini Error:", e);
+      throw e;
     }
   }
 
-  /**
-   * Generates a stylized user review for a product using Gemini.
-   */
-  async generateUserReview(productName: string, tags: string[], mood: string): Promise<string> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `你是一位尊贵的魏来海鲜客户，刚刚品尝了 ${productName}。
-你对这个产品的印象关键词是：${tags.join(', ')}。
-请写一段优雅、高端、简短的评价，语气要 ${mood === 'excited' ? '充满惊喜与赞赏' : '专业且讲究'}。
-不要超过 50 字。`;
+  // Fix: Added missing generateUserReview method used in ReviewCreator.tsx
+  async generateUserReview(productName: string, tags: string[], tone: string): Promise<string> {
+    try {
+      const ai = this.createAI();
+      const prompt = `你是一个购买了“${productName}”的海鲜爱好者。请根据这些标签写一段简短的评价：${tags.join('，')}。语气应该是：${tone}。要求表达出食材的极鲜品质和魏来海鲜的高端服务感。`;
+      
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt
+      });
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-    });
-
-    return response.text || "极致鲜甜，魏来不负所托。";
+      return response.text || "非常棒的海鲜，品质超乎想象，包装和服务都很高级。";
+    } catch (e) {
+      console.error("Gemini Review Error:", e);
+      return "评价生成失败，请手动输入您的品鉴心得。";
+    }
   }
 }
 

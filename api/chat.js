@@ -1,6 +1,4 @@
 
-import { GoogleGenAI } from "@google/genai";
-
 export const config = {
   runtime: 'edge',
 };
@@ -11,78 +9,58 @@ export default async function handler(req) {
   }
 
   try {
-    const { message, image, history, systemInstruction } = await req.json();
+    const { message, history, systemInstruction, response_format, stream } = await req.json();
     
-    // 初始化时使用具名参数
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
-    const contents = [];
-    if (history && Array.isArray(history)) {
-        contents.push(...history);
-    }
+    const messages = [
+      { role: 'system', content: systemInstruction },
+      ...(history || []),
+      { role: 'user', content: message }
+    ];
 
-    const userParts = [];
-    if (image) {
-        const match = image.match(/^data:(.+);base64,(.+)$/);
-        if (match) {
-            userParts.push({
-                inlineData: {
-                    mimeType: match[1],
-                    data: match[2]
-                }
-            });
-        }
-    }
-    if (message) {
-        userParts.push({ text: message });
-    }
-    
-    // 只有在有用户输入时才添加
-    if (userParts.length > 0) {
-      contents.push({ role: 'user', parts: userParts });
-    }
+    // 默认开启流式，除非显式指定为 false (例如获取 JSON 卡片时)
+    const isStream = stream !== false;
 
-    // 使用系统推荐的最新模型
-    const modelName = 'gemini-3-flash-preview';
-
-    const responseStream = await ai.models.generateContentStream({
-      model: modelName,
-      contents: contents,
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.8, // 降低随机性，保证推荐的专业性
-        topP: 0.95,
-        topK: 40,
-      }
-    });
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        const encoder = new TextEncoder();
-        try {
-          for await (const chunk of responseStream) {
-            const text = chunk.text;
-            if (text) {
-              controller.enqueue(encoder.encode(text));
-            }
-          }
-        } catch (e) {
-          console.error("Stream Error", e);
-        } finally {
-          controller.close();
-        }
-      },
-    });
-
-    return new Response(stream, {
+    const response = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Transfer-Encoding': 'chunked',
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.API_KEY}`
       },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: messages,
+        temperature: 0.1, // 降低随机性有利于获取稳定的 JSON 结果
+        response_format: response_format || undefined,
+        stream: isStream
+      })
     });
+
+    if (!response.ok) {
+      const errorMsg = await response.text();
+      console.error("DeepSeek API Upstream Error:", response.status, errorMsg);
+      return new Response(errorMsg, {
+        status: response.status,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (isStream) {
+      return new Response(response.body, {
+        headers: {
+          'Content-Type': 'text/event-stream; charset=utf-8',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    } else {
+      const resultData = await response.json();
+      return new Response(JSON.stringify(resultData), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
   } catch (error) {
-    console.error("API Error:", error);
+    console.error("Proxy Runtime Error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
